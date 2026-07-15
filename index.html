@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Bag of Dungeon 3D v10.18</title>
+<title>Bag of Dungeon 3D v10.19</title>
 <!--
 8BITBOD
 Version: v3.9
@@ -825,6 +825,7 @@ Changes:
 <!-- v10.16: Added cinematic tabletop encounters. On entering combat, the camera smoothly zooms toward the monster tile, the hero and monster step apart like physical miniatures and rotate to face each other, and the combat panel fades in while the dungeon remains visible. Closing combat restores the exploration camera and positions. -->
 <!-- v10.17: Improved cinematic encounters and added persistent battlefield history. Hero/monster spacing now uses each GLB's real bounding size so bases, weapons and large creatures do not collide. The camera automatically frames both complete miniatures. Defeated monsters remain on their tile as tipped-over, darkened corpses with procedural blood stains, including ranged kills, so zooming out shows the hero's progress through the dungeon. -->
 <!-- v10.18: Fixed defeated miniatures floating above the dungeon by grounding each corpse after its final tipped rotation. During cinematic combat the hero and monster are now continuously locked facing one another, preventing redraws or movement state from spinning the hero away. Pressing Fight adds a subtle advance-and-retreat lunge while preserving the tabletop-miniature feel. -->
+<!-- v10.19: Exploration now resumes with the hero exactly centred on the current tile after every fight, so the next normal move starts and ends at tile centre. Fallen monsters now use geometry-aware posing: the renderer measures each scaled GLB, chooses a suitable fall axis and angle, grounds the final outline, recentres it and keeps wide limbs/tentacles near the tile. Special overrides handle Reacher, Snake, Dragon and Mirror Monster. -->
 </head>
 <body class="lightingOff">
 
@@ -923,7 +924,7 @@ Changes:
 
 <script src="assets/assets.js?v=8.4"></script>
 <script>
-const VERSION='v10.18';
+const VERSION='v10.19';
 
 const CHARACTERS=[
  {id:'sirrus',name:'Sirrus the Fighter',glyph:'⚔',desc:'Skilled warrior and renowned blade-master.',maxHealth:10,maxAp:5,baseDice:2,baseMod:2,special:'Lethal Blow',specialDesc:'Once per game you may double your combat roll result.'},
@@ -1147,6 +1148,7 @@ function loadAssets(){
 }
 function saveAssets(){localStorage.setItem('bodDigitalAssetsV25',JSON.stringify(USER_ASSETS))}
 function assetSrc(name){const k=assetKey(name);return USER_ASSETS[k]||DEFAULT_ASSETS[name]||DEFAULT_ASSETS[k]||''}
+window.assetSrc=assetSrc;
 function iconHTML(name,fallback){const src=assetSrc(name);const fb=String(fallback||'?').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');return src?`<span class="spriteWrap"><img class="spriteIcon" src="${src}" alt="${name}" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none">${fb}</span></span>`:(fallback||'?')}
 function assetNames(){
  const names=[];
@@ -1665,14 +1667,13 @@ function openAbout(){
 function openMenu(){
   showModal('Menu','Game and display options.',[
     {text:'Resume',fn:closeModal},
-    {text:lighting.enabled?'Turn Lighting Off':'Turn Lighting On',fn:()=>{
-      lighting.enabled=!lighting.enabled;
+    {text:(window.BOD3D&&window.BOD3D.isLightingOn())?'Turn Lighting Off':'Turn Lighting On',fn:()=>{
+      window.BOD3D?.toggleLighting?.();
       closeModal();
-      applyLightingSettings(true);
     }},
     {text:'Lighting Controls',fn:()=>{
       closeModal();
-      openLightingPanel();
+      window.BOD3D?.openLightingPanel?.();
     }},
     {text:'North Up',fn:()=>{
       closeModal();
@@ -2174,7 +2175,6 @@ function loadLighting(){
  }catch(e){return {...DEFAULT_LIGHTING};}
 }
 let lighting=loadLighting();
-lighting.enabled=false;
 function saveLighting(){
  localStorage.setItem(LIGHTING_STORAGE_KEY,JSON.stringify(lighting));
 }
@@ -2308,6 +2308,10 @@ function monsterFile(name){
  return special[name]||slug(name)+'.glb';
 }
 function monsterPng(name){
+ if(window.assetSrc){
+  const src=window.assetSrc(name);
+  if(src)return src;
+ }
  if(name==='Red Dragon')return 'assets/monsters/dragon.png';
  return 'assets/monsters/'+slug(name)+'.png';
 }
@@ -2444,11 +2448,58 @@ function addBloodStain(x,y,seed=1,offsetX=0,offsetZ=0){
  return group;
 }
 
+const CORPSE_OVERRIDES={
+ reacher:{axis:'x',angle:76,sideOffset:.05},
+ 'giant-snake':{axis:'x',angle:62,sideOffset:.02},
+ snake:{axis:'x',angle:62,sideOffset:.02},
+ dragon:{axis:'z',angle:72,sideOffset:.10},
+ 'mirror-monster':{axis:'z',angle:86,sideOffset:.04}
+};
+
+function chooseCorpsePose(modelPath,size,fallSide=1){
+ const key=modelKeyFromPath(modelPath);
+ const override=CORPSE_OVERRIDES[key];
+
+ if(override){
+  return {
+   axis:override.axis,
+   angle:THREE.MathUtils.degToRad(override.angle)*(fallSide||1),
+   sideOffset:override.sideOffset||0
+  };
+ }
+
+ // Lay the model's vertical height into whichever horizontal direction has
+ // more spare room. This gives thin zombies and broad tentacled creatures
+ // different, geometry-aware fall directions.
+ const axis=size.x<=size.z?'z':'x';
+
+ // Tall narrow figures fall almost flat. Broad/low figures use a gentler tilt.
+ const horizontal=Math.max(size.x,size.z,.001);
+ const tallness=size.y/horizontal;
+ const degrees=THREE.MathUtils.clamp(
+  68+tallness*12,
+  72,
+  88
+ );
+
+ return {
+  axis,
+  angle:THREE.MathUtils.degToRad(degrees)*(fallSide||1),
+  sideOffset:THREE.MathUtils.clamp(horizontal*.045,.02,.13)
+ };
+}
+
 async function addCorpseMiniature(corpse,x,y,token){
  const file=monsterFile(corpse.name);
  const path='assets/models/'+file;
  const source=await loadModel(path);
- if(token!==renderToken||!source)return;
+ if(token!==renderToken)return;
+ if(!source){
+  // No GLB yet for this monster — still show something instead of an invisible kill.
+  await addSprite(monsterPng(corpse.name),x,y,.85,.04,null,null,token);
+  addBloodStain(x,y,corpse.bloodSeed||1,corpse.offsetX||0,corpse.offsetZ||0);
+  return;
+ }
 
  const model=source.clone(true);
  model.traverse(o=>{
@@ -2493,10 +2544,20 @@ async function addCorpseMiniature(corpse,x,y,token){
  );
  pivot.rotation.y=corpse.rotationY||0;
 
- // Tip the miniature onto its side while retaining its original base.
- model.rotation.z=(corpse.fallSide||1)*THREE.MathUtils.degToRad(82);
- model.position.y+=.04;
- model.position.x+=(corpse.fallSide||1)*.16;
+ // Choose the fall direction from the model's actual scaled dimensions.
+ // The system can see the outer geometry bounds, although it does not know anatomy.
+ const standingSize=new THREE.Box3()
+  .setFromObject(model)
+  .getSize(new THREE.Vector3());
+ const pose=chooseCorpsePose(path,standingSize,corpse.fallSide||1);
+
+ if(pose.axis==='x'){
+  model.rotation.x=pose.angle;
+  model.position.z+=(corpse.fallSide||1)*pose.sideOffset;
+ }else{
+  model.rotation.z=pose.angle;
+  model.position.x+=(corpse.fallSide||1)*pose.sideOffset;
+ }
 
  pivot.add(model);
  pivot.userData.isCorpse=true;
@@ -2512,6 +2573,29 @@ async function addCorpseMiniature(corpse,x,y,token){
   pivot.position.y+=tileSurface-fallenBounds.min.y;
   pivot.updateMatrixWorld(true);
  }
+
+ // Re-centre using the finished fallen outline, then clamp the corpse so wide
+ // tentacles, weapons and bases stay reasonably close to the encounter tile.
+ const groundedBounds=new THREE.Box3().setFromObject(pivot);
+ const groundedCentre=groundedBounds.getCenter(new THREE.Vector3());
+ const desiredX=x*TILE+(corpse.offsetX||0);
+ const desiredZ=y*TILE+(corpse.offsetZ||0);
+
+ pivot.position.x+=desiredX-groundedCentre.x;
+ pivot.position.z+=desiredZ-groundedCentre.z;
+ pivot.updateMatrixWorld(true);
+
+ const finalBounds=new THREE.Box3().setFromObject(pivot);
+ const halfTile=TILE*.72;
+ const minAllowedX=x*TILE-halfTile;
+ const maxAllowedX=x*TILE+halfTile;
+ const minAllowedZ=y*TILE-halfTile;
+ const maxAllowedZ=y*TILE+halfTile;
+
+ if(finalBounds.min.x<minAllowedX)pivot.position.x+=minAllowedX-finalBounds.min.x;
+ if(finalBounds.max.x>maxAllowedX)pivot.position.x-=finalBounds.max.x-maxAllowedX;
+ if(finalBounds.min.z<minAllowedZ)pivot.position.z+=minAllowedZ-finalBounds.min.z;
+ if(finalBounds.max.z>maxAllowedZ)pivot.position.z-=finalBounds.max.z-maxAllowedZ;
 
  addBloodStain(
   x,
@@ -3149,24 +3233,27 @@ function endCombatScene(){
  combatScene=null;
 
  if(c.hero&&c.hero.parent===boardGroup){
-  c.hero.position.copy(c.heroStart.position);
+  // Combat temporarily offsets the miniatures. Exploration always resumes
+  // from the exact centre of the hero's current logical tile.
+  const centredX=latestState.player.x*TILE;
+  const centredZ=latestState.player.y*TILE;
+  const centredY=c.hero.userData.heroBaseY??c.heroStart.position.y;
 
-  // Leave a little room for any corpse now occupying this tile.
-  const [cx,cz]=c.tileKey.split(',').map(Number);
-  const tile=latestState?.tiles?.[c.tileKey];
-  if(tile?.corpses?.length){
-   const cameraDirection=new THREE.Vector3();
-   camera.getWorldDirection(cameraDirection);
-   cameraDirection.y=0;
-   if(cameraDirection.lengthSq()<.0001)cameraDirection.set(0,0,-1);
-   cameraDirection.normalize();
-   const side=new THREE.Vector3(-cameraDirection.z,0,cameraDirection.x);
-   c.hero.position.addScaledVector(side,-.28);
-  }
-
+  c.hero.position.set(centredX,centredY,centredZ);
   c.hero.rotation.y=c.heroStart.rotationY;
+
+  c.hero.userData.heroGridX=latestState.player.x;
+  c.hero.userData.heroGridY=latestState.player.y;
+  c.hero.userData.heroBaseY=centredY;
+
   heroRotationCurrent=c.heroStart.rotationY;
-  heroPositionCurrent={x:c.hero.position.x,y:c.hero.position.y,z:c.hero.position.z};
+  heroPositionCurrent={
+   x:centredX,
+   y:centredY,
+   z:centredZ
+  };
+  heroMove=null;
+  heroTurn=null;
  }
  if(c.monster&&c.monster.parent===boardGroup){
   c.monster.position.copy(c.monsterStart.position);
@@ -3522,6 +3609,9 @@ window.BOD3D={
  beginCombat:beginCombatScene,
  endCombat:endCombatScene,
  combatPulse:triggerCombatPulse,
+ isLightingOn(){return !!lighting.enabled;},
+ toggleLighting(){lighting.enabled=!lighting.enabled;applyLightingSettings(true);return lighting.enabled;},
+ openLightingPanel,
  resetHeroFacing(){
   if(heroModel&&heroModel.parent===boardGroup)boardGroup.remove(heroModel);
   heroModel=null;
