@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Bag of Dungeon 3D v10.26</title>
+<title>Bag of Dungeon 3D v10.27</title>
 <!--
 8BITBOD
 Version: v3.9
@@ -875,6 +875,7 @@ Changes:
 <!-- v10.24: Fixed heroes such as Tarak drifting far away from the dungeon. Hero placement and movement now use the visible GLB geometry centre rather than the model's exported root origin. A final centring pass runs on initial load, every ordinary move and after combat, making the fix apply consistently to all hero models. -->
 <!-- v10.25: Blood now uses opaque tile-surface decal geometry instead of transparent overlays. Hero bases, living monsters and corpses correctly hide it, so blood no longer appears through miniatures. -->
 <!-- v10.26: Applied the first formal testing-log fixes. Rusty Armour now lasts for exactly one melee fight and then breaks. The Ring is no longer awarded remotely when its location is revealed or when a distant monster dies; the hero must physically reach the tile after its guardian is gone. In 3D the Ring now hovers, gently bobs and emits a pulsing golden halo/light. Ordinary dropped items also receive a subtle asynchronous bob so loot feels alive without distracting from the tabletop presentation. -->
+<!-- v10.27: Hero Loader Refactor. Every hero GLB is now scaled and centred exactly once inside a clean THREE.Group. The parent group—not the asymmetric visible geometry—is positioned at the exact tile centre and used for all movement, turning, combat staging and recentring. Removed repeated bounding-box corrections during movement, preventing Rill, Duric, Tarak and other asymmetric heroes from jumping away as they rotate. -->
 </head>
 <body class="lightingOff">
 
@@ -973,7 +974,7 @@ Changes:
 
 <script src="assets/assets.js?v=8.4"></script>
 <script>
-const VERSION='v10.26';
+const VERSION='v10.27';
 
 const CHARACTERS=[
  {id:'sirrus',name:'Sirrus the Fighter',glyph:'⚔',desc:'Skilled warrior and renowned blade-master.',maxHealth:10,maxAp:5,baseDice:2,baseMod:2,special:'Lethal Blow',specialDesc:'Once per game you may double your combat roll result.'},
@@ -3093,52 +3094,38 @@ async function addHero(character,player,token){
  const file=characterModelFile(character);
  const path=`assets/models/${file}?v=${encodeURIComponent(VERSION)}`;
  const targetRotation=facingRadians(player.facing||'S');
- const startRotation=heroRotationCurrent===null?targetRotation:heroRotationCurrent;
+ const startRotation=heroRotationCurrent===null
+  ? targetRotation
+  : heroRotationCurrent;
 
- // Reuse the existing hero GLB during normal movement instead of reloading it.
+ const targetPosition={
+  x:player.x*TILE,
+  y:TILE_THICKNESS,
+  z:player.y*TILE
+ };
+
+ // The hero root is a clean, stable game-space group. Its position is always
+ // the exact centre of a dungeon tile and its rotation is always the facing.
+ // The imported GLB is centred once as a child and is never re-centred again.
  if(
   heroModel &&
   heroModel.parent===boardGroup &&
   heroModel.userData.heroId===character.id
  ){
-  const model=heroModel;
-
-  // Position by the miniature's real visible centre, not its GLB object origin.
-  // Some exported heroes contain large internal origin offsets; using those
-  // transforms directly can place the figure far away from the dungeon.
-  model.updateMatrixWorld(true);
-
-  const currentBounds=new THREE.Box3().setFromObject(model);
-  const currentCentre=currentBounds.getCenter(new THREE.Vector3());
-
-  const expectedCentreX=player.x*TILE;
-  const expectedCentreZ=player.y*TILE;
-
   const startPosition={
-   x:model.position.x,
-   y:model.position.y,
-   z:model.position.z
+   x:heroModel.position.x,
+   y:heroModel.position.y,
+   z:heroModel.position.z
   };
-
-  const targetPosition={
-   x:model.position.x+(expectedCentreX-currentCentre.x),
-   y:model.userData.heroBaseY??model.position.y,
-   z:model.position.z+(expectedCentreZ-currentCentre.z)
-  };
-
-  // Record the logical destination immediately so rapid consecutive moves
-  // cannot apply the same correction twice.
-  model.userData.heroGridX=player.x;
-  model.userData.heroGridY=player.y;
 
   const rotationDelta=shortestAngleDelta(startRotation,targetRotation);
-  if(Math.abs(rotationDelta)<0.001){
-   model.rotation.y=targetRotation;
+  if(Math.abs(rotationDelta)<.001){
+   heroModel.rotation.y=targetRotation;
    heroRotationCurrent=targetRotation;
    heroTurn=null;
   }else{
    heroTurn={
-    model,
+    model:heroModel,
     start:startRotation,
     delta:rotationDelta,
     started:performance.now(),
@@ -3153,142 +3140,175 @@ async function addHero(character,player,token){
 
   if(moved){
    heroMove={
-    model,
+    model:heroModel,
     start:startPosition,
     target:targetPosition,
     started:performance.now(),
     duration:HERO_MOVE_MS
    };
   }else{
-   model.position.set(targetPosition.x,targetPosition.y,targetPosition.z);
+   heroModel.position.set(
+    targetPosition.x,
+    targetPosition.y,
+    targetPosition.z
+   );
    heroPositionCurrent={...targetPosition};
    heroMove=null;
   }
 
-  model.position.set(targetPosition.x,targetPosition.y,targetPosition.z);
-  model.updateMatrixWorld(true);
-  const correctedCentre=new THREE.Box3()
-   .setFromObject(model)
-   .getCenter(new THREE.Vector3());
-
-  // Restore the animation start before movement begins.
-  model.position.set(startPosition.x,startPosition.y,startPosition.z);
-  model.updateMatrixWorld(true);
-
-  const distanceFromTile=Math.hypot(
-   correctedCentre.x-expectedCentreX,
-   correctedCentre.z-expectedCentreZ
-  );
-
-  if(distanceFromTile>TILE*.35){
-   console.warn('Hero drift detected; rebuilding character at tile centre.');
-   boardGroup.remove(model);
-   heroModel=null;
-   heroPositionCurrent=null;
-   heroMove=null;
-   heroTurn=null;
-   return addHero(character,player,token);
-  }
-
-  model.visible=true;
-  return model;
+  heroModel.userData.heroGridX=player.x;
+  heroModel.userData.heroGridY=player.y;
+  heroModel.visible=true;
+  return heroModel;
  }
 
- const model=await addMiniature(
-  path,
-  heroPng(character),
-  player.x,
-  player.y,
-  null,
-  'hero',
-  token,
-  startRotation
- );
- if(!model||token!==renderToken)return;
+ const source=await loadModel(path);
+ if(token!==renderToken)return;
 
- heroModel=model;
+ if(!source){
+  // PNG fallback still uses a clean root so movement remains identical.
+  const root=new THREE.Group();
+  root.position.set(
+   targetPosition.x,
+   targetPosition.y,
+   targetPosition.z
+  );
+  root.rotation.y=targetRotation;
+  root.userData.heroId=character.id;
+  root.userData.heroGridX=player.x;
+  root.userData.heroGridY=player.y;
+  root.userData.heroFallback=true;
 
- // Final geometry-based centring pass. This corrects heroes whose GLB root or
- // parent objects were exported a long way from the actual miniature mesh.
- heroModel.updateMatrixWorld(true);
- const loadedBounds=new THREE.Box3().setFromObject(heroModel);
- const loadedCentre=loadedBounds.getCenter(new THREE.Vector3());
- heroModel.position.x+=player.x*TILE-loadedCentre.x;
- heroModel.position.z+=player.y*TILE-loadedCentre.z;
- heroModel.updateMatrixWorld(true);
+  const texture=await loadTexture(heroPng(character));
+  if(token!==renderToken)return;
 
- heroModel.userData.heroId=character.id;
- heroModel.userData.heroGridX=player.x;
- heroModel.userData.heroGridY=player.y;
- heroModel.userData.heroBaseY=model.position.y;
-
- // Always draw the character after tiles, item sprites and darkness overlays.
- heroModel.renderOrder=1000;
- heroModel.traverse?.(o=>{
-  o.renderOrder=1000;
-  if(o.material){
-   const materials=Array.isArray(o.material)?o.material:[o.material];
-   materials.forEach(material=>{
-    material.depthTest=true;
-    material.depthWrite=true;
-    material.transparent=false;
-    material.opacity=1;
-    material.needsUpdate=true;
+  if(texture){
+   const material=new THREE.SpriteMaterial({
+    map:texture,
+    transparent:true,
+    depthTest:true,
+    depthWrite:false
    });
+   const sprite=new THREE.Sprite(material);
+   sprite.scale.set(1.05,1.05,1);
+   sprite.position.y=.55;
+   root.add(sprite);
   }
+
+  boardGroup.add(root);
+  heroModel=root;
+  heroRotationCurrent=targetRotation;
+  heroPositionCurrent={...targetPosition};
+  return root;
+ }
+
+ const visual=source.clone(true);
+ visual.traverse(object=>{
+  if(!object.isMesh)return;
+
+  object.castShadow=true;
+  object.receiveShadow=true;
+  object.userData.cached=true;
+  object.renderOrder=1000;
+
+  const materials=Array.isArray(object.material)
+   ? object.material
+   : [object.material];
+
+  materials.forEach(material=>{
+   if(!material)return;
+   material.depthTest=true;
+   material.depthWrite=true;
+   material.transparent=false;
+   material.opacity=1;
+   material.needsUpdate=true;
+  });
  });
 
- // addMiniature has already calculated the exact centred target position.
- const targetPosition={
-  x:model.position.x,
-  y:model.position.y,
-  z:model.position.z
- };
- const startPosition=heroPositionCurrent
+ // Normalise physical height first.
+ visual.updateMatrixWorld(true);
+ const originalBounds=new THREE.Box3().setFromObject(visual);
+ const originalSize=originalBounds.getSize(new THREE.Vector3());
+
+ if(
+  !Number.isFinite(originalSize.x) ||
+  !Number.isFinite(originalSize.y) ||
+  !Number.isFinite(originalSize.z) ||
+  originalSize.y<=.001
+ ){
+  console.warn('Invalid hero GLB:',path);
+  return;
+ }
+
+ const targetHeight=targetSceneHeightForModel(path);
+ visual.scale.setScalar(
+  targetHeight/Math.max(originalSize.y,.001)
+ );
+ visual.updateMatrixWorld(true);
+
+ // Centre the visible geometry once inside the clean root. The bottom of the
+ // miniature rests at local Y=0 and its horizontal centre is local X/Z=0.
+ const scaledBounds=new THREE.Box3().setFromObject(visual);
+ const scaledCentre=scaledBounds.getCenter(new THREE.Vector3());
+
+ visual.position.x-=scaledCentre.x;
+ visual.position.z-=scaledCentre.z;
+ visual.position.y-=scaledBounds.min.y;
+ visual.updateMatrixWorld(true);
+
+ const root=new THREE.Group();
+ root.position.set(
+  targetPosition.x,
+  targetPosition.y,
+  targetPosition.z
+ );
+ root.rotation.y=targetRotation;
+ root.renderOrder=1000;
+ root.userData.heroId=character.id;
+ root.userData.heroGridX=player.x;
+ root.userData.heroGridY=player.y;
+ root.userData.heroBaseY=TILE_THICKNESS;
+ root.userData.heroVisual=visual;
+
+ root.add(visual);
+ boardGroup.add(root);
+
+ heroModel=root;
+ heroRotationCurrent=targetRotation;
+
+ // A new hero normally starts on its target tile. If a previous valid tracking
+ // position exists, slide the clean root from there without touching the child.
+ const previous=heroPositionCurrent
   ? {...heroPositionCurrent}
   : {...targetPosition};
 
- model.position.set(startPosition.x,startPosition.y,startPosition.z);
-
- const rotationDelta=shortestAngleDelta(startRotation,targetRotation);
- if(Math.abs(rotationDelta)<0.001){
-  model.rotation.y=targetRotation;
-  heroRotationCurrent=targetRotation;
-  heroTurn=null;
- }else{
-  heroTurn={
-   model,
-   start:startRotation,
-   delta:rotationDelta,
-   started:performance.now(),
-   duration:HERO_TURN_MS,
-   target:targetRotation
-  };
- }
+ root.position.set(previous.x,previous.y,previous.z);
 
  const moved=
-  Math.abs(targetPosition.x-startPosition.x)>.001 ||
-  Math.abs(targetPosition.z-startPosition.z)>.001;
+  Math.abs(targetPosition.x-previous.x)>.001 ||
+  Math.abs(targetPosition.z-previous.z)>.001;
 
- if(!moved){
-  model.position.set(targetPosition.x,targetPosition.y,targetPosition.z);
-  heroPositionCurrent={...targetPosition};
-  heroMove=null;
- }else{
+ if(moved){
   heroMove={
-   model,
-   start:startPosition,
+   model:root,
+   start:previous,
    target:targetPosition,
    started:performance.now(),
    duration:HERO_MOVE_MS
   };
+ }else{
+  root.position.set(
+   targetPosition.x,
+   targetPosition.y,
+   targetPosition.z
+  );
+  heroPositionCurrent={...targetPosition};
+  heroMove=null;
  }
 
- // Ensure the model is attached even after an asynchronous redraw.
- if(model.parent!==boardGroup){
-  boardGroup.add(model);
- }
+ return root;
 }
+
 function fitCamera(state){
  const keys=Object.keys(state.tiles||{});
  if(!keys.length)return;
@@ -3507,16 +3527,10 @@ function endCombatScene(){
   // from the exact centre of the hero's current logical tile.
   const centredX=latestState.player.x*TILE;
   const centredZ=latestState.player.y*TILE;
-  const centredY=c.hero.userData.heroBaseY??c.heroStart.position.y;
+  const centredY=TILE_THICKNESS;
 
   c.hero.position.set(centredX,centredY,centredZ);
   c.hero.rotation.y=c.heroStart.rotationY;
-  c.hero.updateMatrixWorld(true);
-
-  const restoredBounds=new THREE.Box3().setFromObject(c.hero);
-  const restoredCentre=restoredBounds.getCenter(new THREE.Vector3());
-  c.hero.position.x+=centredX-restoredCentre.x;
-  c.hero.position.z+=centredZ-restoredCentre.z;
   c.hero.updateMatrixWorld(true);
 
   c.hero.userData.heroGridX=latestState.player.x;
