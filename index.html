@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Bag of Dungeon 3D v10.17</title>
+<title>Bag of Dungeon 3D v10.18</title>
 <!--
 8BITBOD
 Version: v3.9
@@ -824,6 +824,7 @@ Changes:
 <!-- v10.15: Corrected the persistent hero movement fix. The hero now moves by the exact change in tile coordinates rather than reapplying the GLB model-origin offset, which could throw some characters far away from the dungeon. Added automatic drift detection and safe rebuilding if a hero ever leaves its intended tile. -->
 <!-- v10.16: Added cinematic tabletop encounters. On entering combat, the camera smoothly zooms toward the monster tile, the hero and monster step apart like physical miniatures and rotate to face each other, and the combat panel fades in while the dungeon remains visible. Closing combat restores the exploration camera and positions. -->
 <!-- v10.17: Improved cinematic encounters and added persistent battlefield history. Hero/monster spacing now uses each GLB's real bounding size so bases, weapons and large creatures do not collide. The camera automatically frames both complete miniatures. Defeated monsters remain on their tile as tipped-over, darkened corpses with procedural blood stains, including ranged kills, so zooming out shows the hero's progress through the dungeon. -->
+<!-- v10.18: Fixed defeated miniatures floating above the dungeon by grounding each corpse after its final tipped rotation. During cinematic combat the hero and monster are now continuously locked facing one another, preventing redraws or movement state from spinning the hero away. Pressing Fight adds a subtle advance-and-retreat lunge while preserving the tabletop-miniature feel. -->
 </head>
 <body class="lightingOff">
 
@@ -922,7 +923,7 @@ Changes:
 
 <script src="assets/assets.js?v=8.4"></script>
 <script>
-const VERSION='v10.17';
+const VERSION='v10.18';
 
 const CHARACTERS=[
  {id:'sirrus',name:'Sirrus the Fighter',glyph:'⚔',desc:'Skilled warrior and renowned blade-master.',maxHealth:10,maxAp:5,baseDice:2,baseMod:2,special:'Lethal Blow',specialDesc:'Once per game you may double your combat roll result.'},
@@ -1463,6 +1464,7 @@ function fightRound(){
  const p=state.player,m=combat.tile.monster;
  m.meleeStarted=true;
  combat.rolling=true;
+ window.BOD3D?.combatPulse?.();
  showDice(Array.from({length:pDice()},()=>'?'),Array.from({length:m.dice},()=>'?'),true);
  document.getElementById('combatLog').textContent='Rolling dice...';
  playSound('dice');
@@ -2501,6 +2503,16 @@ async function addCorpseMiniature(corpse,x,y,token){
  pivot.userData.monsterName=corpse.name;
  boardGroup.add(pivot);
 
+ // Rotation changes the model's vertical bounds. Measure the finished fallen
+ // miniature and lift/lower the whole pivot so its lowest point rests on the tile.
+ pivot.updateMatrixWorld(true);
+ const fallenBounds=new THREE.Box3().setFromObject(pivot);
+ const tileSurface=TILE_THICKNESS+.022;
+ if(Number.isFinite(fallenBounds.min.y)){
+  pivot.position.y+=tileSurface-fallenBounds.min.y;
+  pivot.updateMatrixWorld(true);
+ }
+
  addBloodStain(
   x,
   y,
@@ -3097,12 +3109,30 @@ function stageCombatScene(tileKey){
   encounterSize.y*1.05+1.7
  );
 
- combatScene={tileKey,hero:heroModel,monster,heroStart,monsterStart,savedCamera};
+ heroTurn=null;
+ heroMove=null;
+
+ combatScene={
+  tileKey,
+  hero:heroModel,
+  monster,
+  heroStart,
+  monsterStart,
+  heroCombatPosition:heroTarget.clone(),
+  monsterCombatPosition:monsterTarget.clone(),
+  savedCamera,
+  attackPulseStarted:null
+ };
  cameraLockedToHero=false;
  lastCameraHeroPosition=null;
  startCameraTween(cinematicPosition,encounterTarget,620);
  return true;
 }
+function triggerCombatPulse(){
+ if(!combatScene||!combatScene.hero||!combatScene.monster)return;
+ combatScene.attackPulseStarted=performance.now();
+}
+
 function beginCombatScene(tileKey){
  pendingCombatTileKey=tileKey;
  if(!stageCombatScene(tileKey)){
@@ -3115,6 +3145,7 @@ function endCombatScene(){
  pendingCombatTileKey=null;
  if(!combatScene)return;
  const c=combatScene;
+ c.attackPulseStarted=null;
  combatScene=null;
 
  if(c.hero&&c.hero.parent===boardGroup){
@@ -3371,6 +3402,48 @@ new ResizeObserver(resize).observe(canvas);
 function animate(now){
  requestAnimationFrame(animate);
 
+ if(combatScene&&combatScene.hero&&combatScene.monster){
+  const hero=combatScene.hero;
+  const monster=combatScene.monster;
+
+  // Redraws and normal movement code must never turn the hero away mid-fight.
+  heroTurn=null;
+  heroMove=null;
+
+  const heroBase=combatScene.heroCombatPosition;
+  const monsterBase=combatScene.monsterCombatPosition;
+
+  if(hero.parent===boardGroup&&monster.parent===boardGroup){
+   let lunge=0;
+
+   if(combatScene.attackPulseStarted!==null){
+    const pulseTime=(now-combatScene.attackPulseStarted)/360;
+    if(pulseTime>=1){
+     combatScene.attackPulseStarted=null;
+    }else{
+     // Quick advance and retreat, like moving a tabletop miniature to attack.
+     lunge=Math.sin(Math.PI*pulseTime)*.18;
+    }
+   }
+
+   const attackDirection=monsterBase.clone().sub(heroBase);
+   attackDirection.y=0;
+   if(attackDirection.lengthSq()>.0001)attackDirection.normalize();
+
+   hero.position.copy(heroBase).addScaledVector(attackDirection,lunge);
+   monster.position.copy(monsterBase);
+
+   hero.rotation.y=yawTowards(hero.position,monster.position);
+   monster.rotation.y=yawTowards(monster.position,hero.position);
+   heroRotationCurrent=hero.rotation.y;
+   heroPositionCurrent={
+    x:hero.position.x,
+    y:hero.position.y,
+    z:hero.position.z
+   };
+  }
+ }
+
  if(cameraTween){
   const t=Math.min(1,(now-cameraTween.started)/cameraTween.duration);
   const eased=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
@@ -3419,7 +3492,7 @@ function animate(now){
   lockCameraToWorldPosition(heroPositionCurrent);
  }
 
- if(heroTurn&&heroTurn.model===heroModel){
+ if(!combatScene&&heroTurn&&heroTurn.model===heroModel){
   const t=Math.min(1,(now-heroTurn.started)/heroTurn.duration);
   const eased=1-Math.pow(1-t,3);
   heroTurn.model.rotation.y=heroTurn.start+heroTurn.delta*eased;
@@ -3448,6 +3521,7 @@ window.BOD3D={
  northUp,
  beginCombat:beginCombatScene,
  endCombat:endCombatScene,
+ combatPulse:triggerCombatPulse,
  resetHeroFacing(){
   if(heroModel&&heroModel.parent===boardGroup)boardGroup.remove(heroModel);
   heroModel=null;
