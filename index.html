@@ -4212,7 +4212,7 @@ function fitHeroPreviewModel(model){
  const box=new THREE.Box3().setFromObject(model);
  const size=box.getSize(new THREE.Vector3());
  const maxDim=Math.max(size.x,size.y,size.z)||1;
- const targetHeight=2.05;
+ const targetHeight=1.15; // reference: small miniature standing in the corridor, not filling the frame
  const scale=targetHeight/(size.y||maxDim);
  model.scale.setScalar(scale);
  model.updateMatrixWorld(true);
