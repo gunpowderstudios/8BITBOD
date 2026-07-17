@@ -4227,8 +4227,8 @@ function fitHeroPreviewModel(model){
  model.position.x-=scaledCenter.x;
  model.position.z-=scaledCenter.z;
  model.position.y-=scaledBox.min.y;
- heroPreviewCamera.position.set(0,scaledSize.y*.50,Math.max(4.2,scaledSize.y*1.95));
- heroPreviewCamera.lookAt(0,scaledSize.y*.48,0);
+ heroPreviewCamera.position.set(0,scaledSize.y*.42,Math.max(4.2,scaledSize.y*1.95));
+ heroPreviewCamera.lookAt(0,scaledSize.y*.70,0);
  heroPreviewCamera.updateProjectionMatrix();
 }
 function normaliseHeroPreviewMaterials(model){
