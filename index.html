@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Bag of Dungeon 3D v10.69</title>
+<title>Bag of Dungeon 3D v10.70</title>
 
 <!--
 8BITBOD
@@ -1512,6 +1512,7 @@ Changes:
 <!-- v10.67: Refined monster reveal timing. Fresh melee encounters now zoom the 3D camera toward the encounter first, hold the monster suspended for about two seconds while its reveal sound plays, then drop it into the screen-right fighting position. The hero is already separated to the left before the drop. -->
 <!-- v10.68: Reduced the fresh monster reveal pause from two seconds to one second. Combat framing now measures the combined hero/monster bounds and dynamically fits the full encounter into the usable viewport with extra safety margin for oversized miniatures such as the Reacher. -->
 <!-- v10.69: Removed the temporary pre-combat camera push-in. Fresh monster encounters now keep the current exploration view until the final dynamically calculated combat framing is ready, then move directly to that framing in one smooth camera transition with no zoom-in/zoom-out bounce. -->
+<!-- v10.70: Fresh melee encounters now move directly into the final dynamically fitted combat frame before the reveal. The camera completes its 620 ms framing move, holds for a further 2 seconds while the monster reveal sound plays, then the monster enters from above the top of frame and drops into its right-side combat position. The monster remains hidden during the hold so it no longer appears suspended in mid-air. -->
 </head>
 <body class="lightingOn">
 
@@ -1694,7 +1695,7 @@ Changes:
 
 <script src="assets/assets.js?v=10.52"></script>
 <script>
-const VERSION='v10.68';
+const VERSION='v10.70';
 
 const CHARACTERS=[
  {id:'sirrus',name:'Sirrus the Fighter',glyph:'⚔',desc:'Skilled warrior and renowned blade-master.',maxHealth:10,maxAp:5,baseDice:2,baseMod:2,special:'Lethal Blow',specialDesc:'Once per game you may double your combat roll result.'},
@@ -4681,10 +4682,12 @@ let rangedCameraScene=null;
 // Monster reveal drop-in: how high above the tile the monster starts, how
 // long the fall takes, and the in-flight list of drops currently animating.
 const MONSTER_DROP_HEIGHT=2.6;
+const MONSTER_COMBAT_ENTRY_HEIGHT=12;
 const MONSTER_DROP_MS=380;
-// Fresh melee encounters pause long enough for the camera to zoom in and the
-// monster reveal sound to play before the miniature drops into the fight.
-const MONSTER_REVEAL_PAUSE_MS=1000;
+// Final combat framing uses a 620 ms camera tween. Fresh melee monsters remain
+// hidden for that move plus a full two-second dramatic hold, then enter from
+// above the top of the framed view and fall into their right-side position.
+const MONSTER_REVEAL_PAUSE_MS=2620;
 const monsterDrops=[];
 let cameraShakeState=null;
 
@@ -4693,12 +4696,19 @@ function triggerCameraShake(duration=240,magnitude=.14){
 }
 
 function startMonsterDrop(pivot,restY,monsterName,delay=0){
+ const revealDelay=Math.max(0,delay);
+ const showOnDrop=pivot.visible;
+ // A delayed combat reveal must not sit visibly in mid-air during the dramatic hold.
+ if(revealDelay>0)pivot.visible=false;
  monsterDrops.push({
   pivot,
   restY,
   monsterName,
-  started:performance.now()+Math.max(0,delay),
-  duration:MONSTER_DROP_MS
+  started:performance.now()+revealDelay,
+  duration:MONSTER_DROP_MS,
+  height:revealDelay>0?MONSTER_COMBAT_ENTRY_HEIGHT:MONSTER_DROP_HEIGHT,
+  showOnDrop,
+  revealed:revealDelay<=0
  });
 }
 
@@ -5874,9 +5884,7 @@ function stageCombatScene(tileKey){
  const monster=findMonsterAtTile(tileKey);
  if(!monster)return false;
 
- // Never capture the monster's temporary airborne position as its combat base.
- // Let the reveal drop finish first, then stage the cinematic fight at ground level.
- if(monsterIsDropping(monster))return false;
+ const monsterDropping=monsterIsDropping(monster);
 
  if(combatScene&&combatScene.tileKey===tileKey&&combatScene.monster===monster)return true;
 
@@ -5917,7 +5925,14 @@ function stageCombatScene(tileKey){
  monsterTarget.y=monsterStart.position.y;
 
  heroModel.position.copy(heroTarget);
- monster.position.copy(monsterTarget);
+ // During the reveal hold/drop, move the monster horizontally into its final
+ // screen-right fighting position without cancelling its vertical fall.
+ if(monsterDropping){
+  monster.position.x=monsterTarget.x;
+  monster.position.z=monsterTarget.z;
+ }else{
+  monster.position.copy(monsterTarget);
+ }
  heroModel.rotation.y=yawTowards(heroTarget,monsterTarget);
  monster.rotation.y=yawTowards(monsterTarget,heroTarget);
  heroRotationCurrent=heroModel.rotation.y;
@@ -5925,11 +5940,20 @@ function stageCombatScene(tileKey){
 
  const savedCamera={position:camera.position.clone(),target:controls.target.clone()};
 
+ // Frame against the monster's eventual landed position, not its temporary
+ // off-screen drop height. Restore the airborne Y immediately afterwards so
+ // the reveal animation can continue independently of the camera framing.
+ const monsterAirborneY=monster.position.y;
+ if(monsterDropping)monster.position.y=TILE_THICKNESS;
  heroModel.updateMatrixWorld(true);
  monster.updateMatrixWorld(true);
  const encounterBounds=new THREE.Box3()
   .setFromObject(heroModel)
   .union(new THREE.Box3().setFromObject(monster));
+ if(monsterDropping){
+  monster.position.y=monsterAirborneY;
+  monster.updateMatrixWorld(true);
+ }
  const encounterSize=encounterBounds.getSize(new THREE.Vector3());
  const encounterTarget=encounterBounds.getCenter(new THREE.Vector3());
  encounterTarget.y=Math.max(.58,encounterTarget.y*.48);
@@ -6061,11 +6085,9 @@ function finishRangedAttack(){
 function beginCombatScene(tileKey){
  pendingCombatTileKey=tileKey;
 
- // Do not perform a temporary push-in before the real combat framing.
- // The encounter remains in the current exploration view while the hero takes
- // position and the monster reveal/drop completes. As soon as the monster has
- // landed, stageCombatScene() calculates the true hero + monster bounds and the
- // camera moves directly to that final framing in one smooth transition.
+ // Go straight to the one true final combat framing. The monster can still be
+ // hidden high above the scene: stageCombatScene() frames its eventual landed
+ // bounds while preserving the delayed off-screen drop animation.
  cameraLockedToHero=false;
  lastCameraHeroPosition=null;
 
@@ -6073,9 +6095,8 @@ function beginCombatScene(tileKey){
  const tryStage=()=>{
   if(pendingCombatTileKey!==tileKey)return;
   if(stageCombatScene(tileKey))return;
-  // A newly revealed monster may still be falling. Keep checking until its
-  // landing animation is complete instead of freezing combat at the air position.
-  if(performance.now()-started<2600)setTimeout(tryStage,50);
+  // The GLB may still be loading into the board. Retry briefly until it exists.
+  if(performance.now()-started<3200)setTimeout(tryStage,50);
  };
  tryStage();
 }
@@ -6747,10 +6768,14 @@ function animate(now){
   for(let i=monsterDrops.length-1;i>=0;i--){
    const drop=monsterDrops[i];
    const rawT=(now-drop.started)/drop.duration;
-   const startY=drop.restY+MONSTER_DROP_HEIGHT;
+   const startY=drop.restY+(drop.height||MONSTER_DROP_HEIGHT);
    if(rawT<=0){
     drop.pivot.position.y=startY;
     continue;
+   }
+   if(!drop.revealed){
+    drop.pivot.visible=drop.showOnDrop;
+    drop.revealed=true;
    }
    const t=Math.min(1,rawT);
    // Ease-in (t*t) so the fall accelerates like gravity rather than
