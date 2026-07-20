@@ -1630,7 +1630,7 @@ Changes:
 <!-- v10.93 dice physics update: Dice now remain visible until the next roll, rest exactly on the dungeon tile plane, use a more natural drop-impact-rebound-secondary-bounce animation with gentle lateral separation, and expose live animation tuning controls plus test rolls in the hidden Developer Console. -->
 <!-- v10.94 dice calibration update: Dice now rest using their measured GLB bounding-box bottom plus an adjustable floor offset, and the Developer Console includes persistent per-colour face calibration controls for results 1-6. -->
 <!-- v10.95 dice mapping/clearance update: Corrected the default 2/5 face mapping, reset legacy dice calibration storage, and moved combat dice farther outward from hero/monster miniatures with stronger outward settling so resting dice do not intersect the character models on desktop or mobile. -->
-<!-- v10.96 chest/dev-dice reliability update: Chest rewards now resume only after the visible dice animation and explicitly restart the pending-item placement queue, preventing loot dialogs from being skipped. Developer Dice controls are wired with a late delegated fallback, tuning persists in localStorage, and Copy Dice Settings / Reset Defaults controls were added. -->
+<!-- v10.97 developer-dice button fix: Explicit global button handlers now back the Dice Developer controls, with visible status feedback and robust copy fallback. v10.96 chest/dev-dice reliability update: Chest rewards now resume only after the visible dice animation and explicitly restart the pending-item placement queue, preventing loot dialogs from being skipped. Developer Dice controls are wired with a late delegated fallback, tuning persists in localStorage, and Copy Dice Settings / Reset Defaults controls were added. -->
 </head>
 <body class="lightingOn">
 
@@ -5112,6 +5112,36 @@ window.BODDice3D={
  calibration:DICE_FACE_QUATERNIONS
 };
 
+// v10.97 — explicit Developer Dice controller. Inline handlers use this so controls
+// work regardless of when the Developer Console itself was wired.
+(function installExplicitDiceDeveloperController(){
+ const STORAGE='bod3dDiceTuningV1096';
+ const DEFAULTS={duration:1900,dropHeight:1.35,bounce1:.48,bounce2:.20,bounce3:.06,spread:.18,gap:.58,floorOffset:.03};
+ const status=(msg)=>{const el=document.getElementById('devDiceStatus');if(el)el.textContent=msg;};
+ const stop=(e)=>{if(e){e.preventDefault?.();e.stopPropagation?.();}return false;};
+ const r6=()=>1+Math.floor(Math.random()*6);
+ const role=()=>document.getElementById('diceCalRole')?.value||'hero';
+ const face=()=>Number(document.getElementById('diceCalFace')?.value||6);
+ const settingsText=()=>{const t=window.BODDice3D.tuning;return `BOD3D Dice Settings\nDuration: ${t.duration}\nDrop Height: ${t.dropHeight}\nBounce 1: ${t.bounce1}\nBounce 2: ${t.bounce2}\nBounce 3: ${t.bounce3}\nSeparation: ${t.spread}\nSpacing: ${t.gap}\nFloor Offset: ${t.floorOffset}`;};
+ const sync=()=>{
+  const map={diceDuration:['duration','diceDurationValue',v=>Math.round(v)+' ms'],diceDrop:['dropHeight','diceDropValue',v=>Number(v).toFixed(2)],diceBounce1:['bounce1','diceBounce1Value',v=>Number(v).toFixed(2)],diceBounce2:['bounce2','diceBounce2Value',v=>Number(v).toFixed(2)],diceSpread:['spread','diceSpreadValue',v=>Number(v).toFixed(2)],diceGap:['gap','diceGapValue',v=>Number(v).toFixed(2)],diceFloorOffset:['floorOffset','diceFloorOffsetValue',v=>Number(v).toFixed(3)]};
+  Object.entries(map).forEach(([id,[key,vid,fmt]])=>{const el=document.getElementById(id),v=document.getElementById(vid);if(el)el.value=window.BODDice3D.tuning[key];if(v)v.textContent=fmt(window.BODDice3D.tuning[key]);});
+ };
+ const saveTune=()=>{try{localStorage.setItem(STORAGE,JSON.stringify(window.BODDice3D.tuning));}catch(e){}};
+ window.BODDiceDev={
+  testHero(e){status('Rolling 2 black hero dice…');Promise.resolve(window.BODDice3D.roll([r6(),r6()],'hero')).then(()=>status('Black dice test complete.'));return stop(e);},
+  testMonster(e){status('Rolling 2 red monster dice…');Promise.resolve(window.BODDice3D.roll([r6(),r6()],'monster')).then(()=>status('Red dice test complete.'));return stop(e);},
+  testCombat(e){status('Rolling hero and monster combat dice…');Promise.resolve(window.BODDice3D.rollCombat([r6(),r6()],[r6(),r6()])).then(()=>status('Combat dice test complete.'));return stop(e);},
+  clear(e){window.BODDice3D.clear();status('Dice cleared.');return stop(e);},
+  showFace(e){window.BODDice3D.showCalibration(role(),face());status(`Showing ${role()==='hero'?'black':'red'} die face ${face()}.`);return stop(e);},
+  saveFace(e){window.BODDice3D.saveCalibration(role(),face());status(`Saved ${role()==='hero'?'black':'red'} die face ${face()}.`);toast('Dice face calibration saved');return stop(e);},
+  rotate(e,axis,angle){window.BODDice3D.rotateCalibration(axis,angle);status(`Rotated calibration die ${axis.toUpperCase()} ${angle>0?'+':''}${angle}°.`);return stop(e);},
+  async copy(e){const text=settingsText();let copied=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);copied=true;}}catch(err){}if(copied){status('Dice settings copied to clipboard.');toast('Dice settings copied');}else{status('Clipboard unavailable — settings shown in copy box.');window.prompt('Copy these dice settings:',text);}return stop(e);},
+  reset(e){window.BODDice3D.setTuning(DEFAULTS);saveTune();sync();status('Dice settings reset to defaults.');toast('Dice settings reset');return stop(e);}
+ };
+ setTimeout(()=>{sync();status('Dice controls ready.');},0);
+})();
+
 // v10.96 — persistent developer dice settings + reliable late button wiring.
 (function installDiceDeveloperReliability(){
  const STORAGE='bod3dDiceTuningV1096';
@@ -7736,25 +7766,26 @@ if(currentState)renderBoard(currentState);
         <div class="devConsoleRow">
           <select id="diceCalRole" aria-label="Dice colour"><option value="hero">Black hero die</option><option value="monster">Red monster die</option></select>
           <select id="diceCalFace" aria-label="Face number"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select>
-          <button type="button" id="diceCalShow">Show Face</button>
-          <button type="button" id="diceCalSave">Save Face</button>
+          <button type="button" id="diceCalShow" onclick="return window.BODDiceDev?.showFace?.(event)">Show Face</button>
+          <button type="button" id="diceCalSave" onclick="return window.BODDiceDev?.saveFace?.(event)">Save Face</button>
         </div>
         <div class="devConsoleGrid">
-          <button type="button" data-dice-cal-axis="x" data-dice-cal-angle="-90">Rotate X −90°</button>
-          <button type="button" data-dice-cal-axis="x" data-dice-cal-angle="90">Rotate X +90°</button>
-          <button type="button" data-dice-cal-axis="y" data-dice-cal-angle="-90">Rotate Y −90°</button>
-          <button type="button" data-dice-cal-axis="y" data-dice-cal-angle="90">Rotate Y +90°</button>
-          <button type="button" data-dice-cal-axis="z" data-dice-cal-angle="-90">Rotate Z −90°</button>
-          <button type="button" data-dice-cal-axis="z" data-dice-cal-angle="90">Rotate Z +90°</button>
+          <button type="button" data-dice-cal-axis="x" data-dice-cal-angle="-90" onclick="return window.BODDiceDev?.rotate?.(event,'x',-90)">Rotate X −90°</button>
+          <button type="button" data-dice-cal-axis="x" data-dice-cal-angle="90" onclick="return window.BODDiceDev?.rotate?.(event,'x',90)">Rotate X +90°</button>
+          <button type="button" data-dice-cal-axis="y" data-dice-cal-angle="-90" onclick="return window.BODDiceDev?.rotate?.(event,'y',-90)">Rotate Y −90°</button>
+          <button type="button" data-dice-cal-axis="y" data-dice-cal-angle="90" onclick="return window.BODDiceDev?.rotate?.(event,'y',90)">Rotate Y +90°</button>
+          <button type="button" data-dice-cal-axis="z" data-dice-cal-angle="-90" onclick="return window.BODDiceDev?.rotate?.(event,'z',-90)">Rotate Z −90°</button>
+          <button type="button" data-dice-cal-axis="z" data-dice-cal-angle="90" onclick="return window.BODDiceDev?.rotate?.(event,'z',90)">Rotate Z +90°</button>
         </div>
         <div class="devConsoleGrid">
-          <button type="button" id="devTestHeroDice">Test 2 Black Dice</button>
-          <button type="button" id="devTestMonsterDice">Test 2 Red Dice</button>
-          <button type="button" id="devTestCombatDice">Test Combat Dice</button>
-          <button type="button" id="devClearDice">Clear Dice</button>
-          <button type="button" id="devCopyDiceSettings">Copy Dice Settings</button>
-          <button type="button" id="devResetDiceSettings">Reset Dice Defaults</button>
+          <button type="button" id="devTestHeroDice" onclick="return window.BODDiceDev?.testHero?.(event)">Test 2 Black Dice</button>
+          <button type="button" id="devTestMonsterDice" onclick="return window.BODDiceDev?.testMonster?.(event)">Test 2 Red Dice</button>
+          <button type="button" id="devTestCombatDice" onclick="return window.BODDiceDev?.testCombat?.(event)">Test Combat Dice</button>
+          <button type="button" id="devClearDice" onclick="return window.BODDiceDev?.clear?.(event)">Clear Dice</button>
+          <button type="button" id="devCopyDiceSettings" onclick="return window.BODDiceDev?.copy?.(event)">Copy Dice Settings</button>
+          <button type="button" id="devResetDiceSettings" onclick="return window.BODDiceDev?.reset?.(event)">Reset Dice Defaults</button>
         </div>
+        <div id="devDiceStatus" class="devConsoleNote" style="font-weight:bold">Dice controls ready.</div>
         <div class="devConsoleNote">Adjust the sliders and test the rolls. Settings are saved in this browser. Use Copy Dice Settings and paste the values back into chat when you want them made permanent.</div>
       </section>
 
@@ -8026,7 +8057,7 @@ if(currentState)renderBoard(currentState);
   if(known)return;
   const v=document.createElement('div');
   v.id='topLogoVersion';
-  v.textContent='v10.92';
+  v.textContent='v10.97';
   v.style.cssText='font-size:10px;line-height:1;text-align:center;letter-spacing:.08em;opacity:.65;color:#e6d6a8;margin-top:2px;';
   logo.insertAdjacentElement('afterend',v);
  }
@@ -8096,7 +8127,7 @@ if(currentState)renderBoard(currentState);
   if(mark){
    var v=document.createElement('div');
    v.id='bodVersionUnderLogo';
-   v.textContent='v10.92';
+   v.textContent='v10.97';
    mark.insertAdjacentElement('afterend',v);
   }
  }
