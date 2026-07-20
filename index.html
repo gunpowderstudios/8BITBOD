@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Bag of Dungeon 3D v10.99</title>
+<title>Bag of Dungeon 3D v10.91</title>
 
 <!--
 8BITBOD
@@ -159,6 +159,11 @@ button:disabled{opacity:.45;cursor:not-allowed;}
 }
 .heroArrow:hover,.heroArrow:focus-visible{color:#ffe59d;transform:scale(1.1);outline:none}
 .heroArrow:active{transform:scale(.96)}
+#prevHeroBtn,#nextHeroBtn{
+ background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;
+ -webkit-appearance:none!important;appearance:none!important;
+}
+#prevHeroBtn::before,#prevHeroBtn::after,#nextHeroBtn::before,#nextHeroBtn::after{background:transparent!important;box-shadow:none!important;}
 .heroInfoPanel{
  width:min(820px,94vw);margin-top:-12px;padding:10px clamp(16px,3vw,34px) 12px;
  color:#fff;text-align:center;
@@ -1572,10 +1577,10 @@ Changes:
 <!-- v10.68: Reduced the fresh monster reveal pause from two seconds to one second. Combat framing now measures the combined hero/monster bounds and dynamically fits the full encounter into the usable viewport with extra safety margin for oversized miniatures such as the Reacher. -->
 <!-- v10.69: Removed the temporary pre-combat camera push-in. Fresh monster encounters now keep the current exploration view until the final dynamically calculated combat framing is ready, then move directly to that framing in one smooth camera transition with no zoom-in/zoom-out bounce. -->
 <!-- v10.70: Fresh melee encounters now move directly into the final dynamically fitted combat frame before the reveal. The camera completes its 620 ms framing move, holds for a further 2 seconds while the monster reveal sound plays, then the monster enters from above the top of frame and drops into its right-side combat position. The monster remains hidden during the hold so it no longer appears suspended in mid-air. -->
-<!-- v10.99: Fixed monster reveal drops being frozen in mid-air by the combat pose loop. While a monster is actively dropping, combat staging now preserves its animated Y position and only locks its X/Z fighting position. Once the drop completes, the normal combat pose takes over at ground level. -->
+<!-- v10.90: Fixed monster reveal drops being frozen in mid-air by the combat pose loop. While a monster is actively dropping, combat staging now preserves its animated Y position and only locks its X/Z fighting position. Once the drop completes, the normal combat pose takes over at ground level. -->
 
 <style>
-/* v10.99 — Centre combat panel within the black 3D play area */
+/* v10.90 — Centre combat panel within the black 3D play area */
 @media (min-width: 701px) {
   #combatPanel {
     left: calc(var(--sidebar-width, 230px) + (100vw - var(--sidebar-width, 230px)) / 2) !important;
@@ -1585,21 +1590,21 @@ Changes:
 }
 </style>
 
-<!-- v10.99: Reworked combat blood into random sword-and-sorcery screen splats with heavy slash, diagonal slash, scatter, drip and mist variants. Damage now scales splat size and density, so bigger hits create larger, more dramatic sprays. Flying Daggers uniquely follow connected dungeon paths around corners; Bow, Ice Staff and Fireball now require a clear straight connected corridor. -->
-<!-- v10.99: Simplified core combat audio mapping. Successful hand-weapon melee attacks use assets/sounds/sword.mp3, bows use bow.mp3, and spell casts including Fireball, Ice Staff and Flying Daggers use spell.mp3. Existing specialist sounds remain available for later expansion. -->
-<!-- v10.99: Monster reveal/drop now defaults to assets/sounds/monster.mp3 through the existing monsterReveal sound key, ready for individual monster-specific overrides later. -->
-<!-- v10.99: Monster reveal timing tightened: once the combat camera reaches its final fitted frame, the monster immediately begins its drop. The monster.mp3 reveal sound remains tied to the encounter. -->
-<!-- v10.99: Fixed monster landing sound timing. A monster is now marked as having completed its reveal only when its drop actually lands, so per-monster landing sounds such as assets/sounds/landgoblin.mp3 fire from the physical landing event instead of being pre-empted when the model is first created. -->
-<!-- v10.99: Monster reveal audio now checks for a monster-specific landing sound first. If landgoblin.mp3 exists, Goblin encounters suppress the generic monster.mp3 and play only landgoblin.mp3 on physical landing. Dungeon ambience remains a separate persistent loop and automatically resumes after tab/browser suspension. -->
-<!-- v10.99: Chests are now dungeon objects, not inventory items. Finding a Small or Large Chest leaves it visibly on the current tile and offers Open Chest or Leave It. Leaving keeps it on the tile for a later visit; opening resolves the existing chest trap/reward and removes the chest. Chest tiles cannot be picked up into the backpack. -->
+<!-- v10.90: Reworked combat blood into random sword-and-sorcery screen splats with heavy slash, diagonal slash, scatter, drip and mist variants. Damage now scales splat size and density, so bigger hits create larger, more dramatic sprays. Flying Daggers uniquely follow connected dungeon paths around corners; Bow, Ice Staff and Fireball now require a clear straight connected corridor. -->
+<!-- v10.90: Simplified core combat audio mapping. Successful hand-weapon melee attacks use assets/sounds/sword.mp3, bows use bow.mp3, and spell casts including Fireball, Ice Staff and Flying Daggers use spell.mp3. Existing specialist sounds remain available for later expansion. -->
+<!-- v10.90: Monster reveal/drop now defaults to assets/sounds/monster.mp3 through the existing monsterReveal sound key, ready for individual monster-specific overrides later. -->
+<!-- v10.90: Monster reveal timing tightened: once the combat camera reaches its final fitted frame, the monster immediately begins its drop. The monster.mp3 reveal sound remains tied to the encounter. -->
+<!-- v10.90: Fixed monster landing sound timing. A monster is now marked as having completed its reveal only when its drop actually lands, so per-monster landing sounds such as assets/sounds/landgoblin.mp3 fire from the physical landing event instead of being pre-empted when the model is first created. -->
+<!-- v10.90: Monster reveal audio now checks for a monster-specific landing sound first. If landgoblin.mp3 exists, Goblin encounters suppress the generic monster.mp3 and play only landgoblin.mp3 on physical landing. Dungeon ambience remains a separate persistent loop and automatically resumes after tab/browser suspension. -->
+<!-- v10.90: Chests are now dungeon objects, not inventory items. Finding a Small or Large Chest leaves it visibly on the current tile and offers Open Chest or Leave It. Leaving keeps it on the tile for a later visit; opening resolves the existing chest trap/reward and removes the chest. Chest tiles cannot be picked up into the backpack. -->
 
 <style>
-/* v10.99 — Version number lives beneath the top-left 3D logo */
+/* v10.90 — Version number lives beneath the top-left 3D logo */
 #logoWrap,#gameLogoWrap,.logoWrap,.gameLogoWrap,.topLogo,.brandLogo{
   position:relative;
 }
 #logoWrap::after,#gameLogoWrap::after,.logoWrap::after,.gameLogoWrap::after,.topLogo::after,.brandLogo::after{
-  content:"v10.99";
+  content:"v10.91";
   display:block;
   text-align:center;
   margin-top:2px;
@@ -1611,28 +1616,10 @@ Changes:
 }
 </style>
 
-<!-- v10.99: Ranged attacks against hidden monsters now wait for the reveal/drop animation to complete before firing. Ice Staff, Fireball, Bow and Flying Daggers reveal the monster, let it land, pause briefly, then launch the projectile/effect. Already revealed monsters are attacked immediately. -->
-<!-- v10.99: Removed the vertical monster drop animation. Monsters now reveal already grounded with a quick 180ms scale-in impact, camera shake and landing sound. Hidden-monster ranged attacks reveal the grounded monster first, pause briefly, then fire, eliminating projectiles shooting upward during reveal. -->
-<!-- v10.99: Fixed chest reward placement. Chest UI closes before reward items are awarded, so item placement remains visible. Large Chest rewards resolve one at a time through the pending item queue. -->
-<style>
-body.combatActive.teleportTargeting #combat{pointer-events:none!important}
-body.combatActive.teleportTargeting #threeBoard,
-body.combatActive.teleportTargeting #viewport{pointer-events:auto!important}
-</style>
-<!-- v10.99: Healing Pool interaction now resolves before any other tile event. Entering an unused pool pauses item, dropped-loot and monster checks until the player chooses Heal or Leave It, preventing overlapping prompts and hidden combat triggers. -->
-<!-- v10.99: Magic Sword interaction improved. When equipped, clicking or pressing Enter/Space on an adjacent hidden monster now reveals its identity and stats directly. Ranged targeting still takes priority when a ranged attack is active. -->
-
-<style>
-/* v10.99 — Magic Sword hidden-monster clicking */
-body.magicSwordActive .hiddenMonster{
-  pointer-events:auto!important;
-  cursor:pointer!important;
-}
-</style>
-
-<!-- v10.99: Fixed Magic Sword reveal in both DOM and Three.js modes. Hidden monster overlays become clickable while the Magic Sword is equipped, and Three.js hidden-monster clicks now route through the same adjacent-reveal logic instead of only responding during ranged attacks. -->
-<!-- v10.99: Magic Sword detection now checks the actual left/right hand equipment slots as well as legacy weapon slots. Added capture-phase board click handling so adjacent hidden-monster clicks reach the Magic Sword reveal even when Three.js/OrbitControls intercept normal clicks. -->
-<!-- v10.99: Fixed the actual Magic Sword equipment check. The game stores equipped hand items in player.slots.left/right; the previous v10.98 helper incorrectly looked for equipment.leftHand/rightHand, which do not exist. Adjacent hidden-monster clicking and the directional reveal UI now both use the real hand slots. -->
+<!-- v10.90: Ranged attacks against hidden monsters now wait for the reveal/drop animation to complete before firing. Ice Staff, Fireball, Bow and Flying Daggers reveal the monster, let it land, pause briefly, then launch the projectile/effect. Already revealed monsters are attacked immediately. -->
+<!-- v10.90: Removed the vertical monster drop animation. Monsters now reveal already grounded with a quick 180ms scale-in impact, camera shake and landing sound. Hidden-monster ranged attacks reveal the grounded monster first, pause briefly, then fire, eliminating projectiles shooting upward during reveal. -->
+<!-- v10.90: Fixed chest reward placement. Chest UI closes before reward items are awarded, so item placement remains visible. Large Chest rewards resolve one at a time through the pending item queue. -->
+<!-- v10.91: Mobile Centre now recentres the Three.js camera correctly; respawns hard-reset the hero model and camera onto Start; character-selector arrows are forced transparent with no cream button box; Witch's Claw text is solo-only; Chest copy now explains trap/loot possibilities and chest opening visibly rolls a die; added reusable 3D dice.glb roller for combat, chests and Ring-location rolls with existing dice.mp3/fallback clack audio. -->
 </head>
 <body class="lightingOn">
 
@@ -1815,7 +1802,7 @@ body.magicSwordActive .hiddenMonster{
 
 <script src="assets/assets.js?v=10.52"></script>
 <script>
-const VERSION='v10.99';
+const VERSION='v10.91';
 
 const CHARACTERS=[
  {id:'sirrus',name:'Sirrus the Fighter',glyph:'⚔',desc:'Skilled warrior and renowned blade-master.',maxHealth:10,maxAp:5,baseDice:2,baseMod:2,special:'Lethal Blow',specialDesc:'Once per game you may double your combat roll result.'},
@@ -1968,10 +1955,10 @@ const ITEM_MASTER=[
  {name:"Sorcerer's Skull",copies:1,type:'spell',icon:'☠',desc:'1 use: 1 dice damage to all on tile.',use:'skull'},
  {name:'Magic Sword',copies:1,type:'equipment',slot:'weapon',icon:'🗡',desc:'+2 combat roll. View adjacent monster.',apply:p=>equipBest('weapon',2,'Magic Sword','🗡')},
  {name:'Bow',copies:1,type:'equipment',slot:'bow',icon:'🏹',desc:'Two-handed. Range 1-3. Spend 3 AP for 1 die ranged damage. May target hidden or revealed monsters. If it survives, it charges into melee. The Dragon is immune.',apply:p=>{p.equipment.bow={name:'Bow',icon:'🏹',dice:1,bonus:0};}},
- {name:'Small Chest',copies:1,type:'consumable',icon:'□',desc:'Open: roll 1-2 take 2 damage, 3-6 draw 1 item.',use:'smallChest'},
- {name:'Large Chest',copies:1,type:'consumable',icon:'▣',desc:'Open: roll 1-2 take 5 damage, 3-6 draw 2 items.',use:'largeChest'},
+ {name:'Small Chest',copies:1,type:'consumable',icon:'□',desc:'Chest: may be trapped, may contain an item. Open it to roll the die.',use:'smallChest'},
+ {name:'Large Chest',copies:1,type:'consumable',icon:'▣',desc:'Chest: may be trapped, may contain items. Open it to roll the die.',use:'largeChest'},
  {name:'Vampire Teeth',copies:1,type:'spell',icon:'⌇',desc:'1 use: drain and gain 5 health.',use:'vampire'},
- {name:"Witch's Claw",copies:1,type:'spell',icon:' claw',desc:'1 use: choose and steal item in multiplayer; solo: weaken current monster.',use:'claw'},
+ {name:"Witch's Claw",copies:1,type:'spell',icon:' claw',desc:'1 use: weaken the current monster.',use:'claw'},
  {name:'Elven Bow',copies:1,type:'equipment',slot:'bow',icon:'➶',desc:'Two-handed. Range 1-3. Spend 3 AP for 1 die +2 ranged damage. May target hidden or revealed monsters. If it survives, it charges into melee. The Dragon is immune.',apply:p=>{p.equipment.bow={name:'Elven Bow',icon:'➶',dice:1,bonus:2};}},
  {name:'Fireball',copies:1,type:'spell',icon:'☄',desc:'1 use, 2 AP: 3 dice damage to monster.',use:'fireball'},
  {name:'Steel Shield',copies:1,type:'equipment',slot:'shield',icon:'◫',desc:'-1 damage from attacks.',apply:p=>equipBest('shield',1,'Steel Shield','◫')},
@@ -2215,7 +2202,7 @@ function saveSounds(){try{localStorage.setItem('bodDigitalSoundsV45',JSON.string
 function audio(){ if(!audioCtx){audioCtx=new (window.AudioContext||window.webkitAudioContext)();} if(audioCtx.state==='suspended')audioCtx.resume(); return audioCtx;}
 function beep(freq=440,dur=.08,type='square',vol=.09,delay=0){ if(!soundOn)return; const c=audio(); const o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.setValueAtTime(freq,c.currentTime+delay); g.gain.setValueAtTime(vol*soundVolume,c.currentTime+delay); g.gain.exponentialRampToValueAtTime(.001,c.currentTime+delay+dur); o.connect(g).connect(c.destination); o.start(c.currentTime+delay); o.stop(c.currentTime+delay+dur);}
 function fallbackSound(key){const f={move:()=>beep(160,.05,'square',.07),tilePlace:()=>{beep(220,.06,'square',.08);beep(330,.07,'square',.07,.05)},pickup:()=>{beep(740,.08,'triangle',.12);beep(980,.1,'triangle',.1,.07)},equip:()=>{beep(420,.06,'square',.08);beep(650,.08,'triangle',.09,.05)},unequip:()=>beep(300,.08,'triangle',.08),drop:()=>beep(180,.09,'square',.08),dice:()=>{[180,260,210,320].forEach((x,i)=>beep(x,.045,'square',.05,i*.035))},hit:()=>{beep(120,.08,'sawtooth',.11);beep(90,.05,'square',.08,.05)},sword:()=>{beep(210,.045,'sawtooth',.09);beep(125,.08,'triangle',.07,.035)},critical:()=>{[440,660,880].forEach((x,i)=>beep(x,.1,'square',.12,i*.06))},bow:()=>{beep(650,.04,'triangle',.08);beep(220,.1,'sawtooth',.05,.03)},arrowHit:()=>beep(150,.08,'square',.08),spell:()=>{beep(540,.07,'triangle',.11);beep(820,.09,'triangle',.1,.06)},fireball:()=>{beep(180,.18,'sawtooth',.12);beep(90,.22,'sawtooth',.1,.05)},ice:()=>{beep(900,.08,'triangle',.08);beep(1200,.12,'triangle',.06,.06)},heal:()=>{[520,660,780].forEach((x,i)=>beep(x,.1,'sine',.08,i*.07))},teleport:()=>{[300,500,800,1100].forEach((x,i)=>beep(x,.08,'triangle',.07,i*.05))},trap:()=>{beep(110,.18,'square',.12);beep(70,.15,'sawtooth',.1,.08)},monsterReveal:()=>{beep(100,.18,'sawtooth',.12);beep(75,.2,'sawtooth',.1,.08)},monsterDie:()=>{beep(180,.1,'sawtooth',.1);beep(90,.18,'sawtooth',.08,.07)},heroHurt:()=>beep(120,.12,'sawtooth',.1),run:()=>{beep(260,.05,'square',.07);beep(190,.07,'square',.06,.05)},ring:()=>{[660,880,1100].forEach((x,i)=>beep(x,.12,'triangle',.1,i*.08))},dragon:()=>{beep(65,.35,'sawtooth',.14);beep(48,.4,'sawtooth',.11,.1)},win:()=>{[523,659,784,1047].forEach((x,i)=>beep(x,.16,'triangle',.12,i*.1))},lose:()=>{[330,260,210,150].forEach((x,i)=>beep(x,.18,'sawtooth',.1,i*.12))},click:()=>beep(360,.035,'square',.035)}; (f[key]||f.click)();}
-// v10.99: Default monster reveal/drop sound. Individual monster sounds can override this later.
+// v10.90: Default monster reveal/drop sound. Individual monster sounds can override this later.
 window.SOUND_PATHS=window.SOUND_PATHS||{};
 window.SOUND_PATHS.monsterReveal='assets/sounds/monster.mp3';
 
@@ -2652,6 +2639,7 @@ function placeExitAndRing(x,y,fromTile){
  if(found){found[1].hasRing=true;found[1].ringReveal=true;setTimeout(()=>{if(found[1]){found[1].ringReveal=false;render();}},3000);}
  playSound('dragon');playTileEffect(exitKey,'dragon',1400);
  playSound('dice');
+ window.BODDice3D?.roll?.(rr.rolls);
  log('The final dungeon tile is laid. The Exit appears and the Red Dragon guards it.','loot');
  log('Ring location roll: '+rr.rolls.join(' + ')+' = '+ringNumber+'. The Ring of Creation appears at M'+ringNumber+' and must be physically collected.','loot');
  if(found){
@@ -2684,7 +2672,7 @@ function canLay(dir){const p=state.player,t=getTile(p.x,p.y),d=DIRS[dir];return 
 
 function move(dir){const p=state.player;if(p.ap<1)return;const d=DIRS[dir];p.facing=dir;p.prevX=p.x;p.prevY=p.y;p.x+=d.dx;p.y+=d.dy;p.ap-=1;sndMove();const t=getTile(p.x,p.y);t.visited=true;
  if(t.kind==='spike'){promptOldSpikey(t);render();centreOnHero(false);return;}
- if(t.kind==='pool'&&!t.poolUsed){promptHealingPool(t);render();centreOnHero(false);return;}
+ if(t.kind==='pool'&&!t.poolUsed){promptHealingPool(t);}
  if(t.itemPending&&!t.itemUsed){t.itemUsed=true;t.itemPending=false;awardItem(drawItem());}
  if(t.droppedItems&&t.droppedItems.length){setTimeout(()=>offerDroppedItems(),80);}
  if(t.monsterPending&&!t.monster){t.monster=drawMonster();t.monsterPending=false;sndMonster(t.monster.name);log('A monster is revealed: '+t.monster.name+'.','combat');}
@@ -2752,52 +2740,10 @@ function promptOldSpikey(tile){
 }
 function chooseSpikeSacrifice(tile){const items=allCarriedItems().filter(x=>!isBear(x));showModal('Jam Old Spikey','Choose an item to destroy.',items.map(it=>({text:it.name,cls:'red',fn:()=>{dropDestroyedItem(it);closeModal();log('Destroyed '+it.name+' to jam Old Spikey.','system');render();}})).concat([{text:'Back',fn:()=>promptOldSpikey(tile)}]));}
 function dropDestroyedItem(item){const p=state.player;if(item.name==='Magic Boots'&&p.flags.bootsBonus){p.flags.bootsBonus=false;p.maxAp=Math.max(1,p.maxAp-1);p.ap=Math.min(p.ap,p.maxAp);}removeFromCurrentLocation(item);state.itemDiscard.push(item);syncEquipment();}
-function continueAfterHealingPool(tile){
- const p=state.player;
- if(!tile)return;
- if(tile.itemPending&&!tile.itemUsed){tile.itemUsed=true;tile.itemPending=false;awardItem(drawItem());}
- if(tile.droppedItems&&tile.droppedItems.length){setTimeout(()=>offerDroppedItems(),80);}
- if(tile.monsterPending&&!tile.monster){
-  tile.monster=drawMonster();
-  tile.monsterPending=false;
-  sndMonster(tile.monster.name);
-  log('A monster is revealed: '+tile.monster.name+'.','combat');
- }
- if(tile.monster&&tile.monster.health>0){
-  tile.monster.revealed=true;
-  tile.monster.discoveredByCloak=!!p.equipment.cloak;
-  if(p.equipment.cloak&&tile.kind!=='exit'&&!tile.monster.isDragon){
-   showCloakChoice(tile);
-   render();
-   return;
-  }
-  openCombat(tile);
- }else{
-  collectRingIfSafe(key(p.x,p.y));
- }
- if(tile.kind==='exit'&&p.hasRing&&!tile.monster)win();
- render();
- centreOnHero(false);
-}
-
 function promptHealingPool(tile){
  showModal('Healing Pool','Use the Healing Pool and restore your Health to full? The pool can only be used once.'+(tile.droppedItems&&tile.droppedItems.length?'\n\nItems belonging to a fallen adventurer lie here and may be recovered.':''),[
-  {text:'Yes — Heal',cls:'green',fn:()=>{
-   closeModal();
-   state.player.health=state.player.maxHealth;
-   tile.poolUsed=true;
-   sndItem();
-   playCurrentTileEffect('heal',1000);
-   log('You use the Healing Pool and restore your health to full.','heal');
-   render();
-   setTimeout(()=>continueAfterHealingPool(tile),80);
-  }},
-  {text:'No — Leave It',fn:()=>{
-   closeModal();
-   log('You leave the Healing Pool unused.','system');
-   render();
-   setTimeout(()=>continueAfterHealingPool(tile),80);
-  }}
+  {text:'Yes — Heal',cls:'green',fn:()=>{closeModal();state.player.health=state.player.maxHealth;tile.poolUsed=true;sndItem();playCurrentTileEffect('heal',1000);log('You use the Healing Pool and restore your health to full.','heal');render();}},
+  {text:'No — Leave It',fn:()=>{closeModal();log('You leave the Healing Pool unused.','system');render();}}
  ]);
 }
 function openCombat(tile,options={}){
@@ -3173,18 +3119,22 @@ function fightRound(){
  const p=state.player,m=combat.tile.monster;
  m.meleeStarted=true;
  combat.rolling=true;
+ const pr=roll(pDice()),mr=roll(m.dice);
+ combat.pendingDiceRoll={pr,mr};
  window.BOD3D?.combatPulse?.();
  showDice(Array.from({length:pDice()},()=>'?'),Array.from({length:m.dice},()=>'?'),true);
  document.getElementById('combatLog').textContent='Rolling dice...';
  playSound('dice');
+ window.BODDice3D?.roll?.([...pr.rolls,...mr.rolls]);
  renderCombat();
- setTimeout(()=>resolveFightRound(),420);
+ setTimeout(()=>resolveFightRound(),1050);
 }
 function resolveFightRound(){
  if(!combat)return;
  combat.hadMeleeRound=true;
  const p=state.player,m=combat.tile.monster;
- let pr=roll(pDice()),mr=roll(m.dice);
+ let pr=combat.pendingDiceRoll?.pr||roll(pDice()),mr=combat.pendingDiceRoll?.mr||roll(m.dice);
+ combat.pendingDiceRoll=null;
  let crit=isCritical(pr.rolls);
  let diceScore=pr.total;
  let pt=(crit?diceScore*2:diceScore)+pCombatMod();
@@ -3275,7 +3225,7 @@ function runAway(){
 
 function clearPlayerItems(){const p=state.player;p.slots={left:null,right:null,armour:null,boots:null,cloak:null};p.backpack=[];p.companionBear=null;p.flags.bootsBonus=false;p.maxAp=state.charDef.maxAp;p.ap=Math.min(p.ap,p.maxAp);syncEquipment();}
 function healingPoolTile(){return Object.values(state.tiles).find(t=>t.kind==='pool')||null;}
-function death(){const p=state.player;const carried=allCarriedItems();const acme=carried.find(it=>it.name==='Acme Insurance');if(p.flags.insurance||acme){if(acme){removeFromCurrentLocation(acme);state.itemDiscard.push(acme);}p.flags.insurance=false;p.health=p.maxHealth;p.x=0;p.y=0;p.facing='S';log('Acme Insurance saves you and lets you keep your items!','heal');closeCombat();render();centreOnHero();return;}const killedByDragon=!!(combat&&combat.tile&&combat.tile.monster&&combat.tile.monster.isDragon);const droppable=carried.filter(it=>!isBear(it));if(droppable.length){let targetTile;if(killedByDragon){targetTile=healingPoolTile();if(targetTile){log('The Dragon defeats you. Your items are transferred to the Healing Pool.','combat');}else{targetTile=getTile(p.x,p.y);log('The Dragon defeats you. No Healing Pool is available, so your items remain at the Exit.','combat');}}else{targetTile=getTile(p.x,p.y);log('Your items drop on the tile where you fell.','combat');}if(targetTile){targetTile.droppedItems=targetTile.droppedItems||[];targetTile.droppedItems.push(...droppable);}clearPlayerItems();}p.lives--;if(p.lives<=0){lose();return;}p.health=p.maxHealth;p.x=0;p.y=0;p.facing='S';p.hasRing=false;log('You fall and wake at Start. Lives left: '+p.lives+'.','combat');closeCombat();render();centreOnHero(false);setTimeout(()=>{centreOnHero(true);if(window.BOD3D?.centreCameraOnHero)window.BOD3D.centreCameraOnHero();else if(typeof centreCameraOnHero==='function')centreCameraOnHero();},80);}
+function death(){const p=state.player;const carried=allCarriedItems();const acme=carried.find(it=>it.name==='Acme Insurance');if(p.flags.insurance||acme){if(acme){removeFromCurrentLocation(acme);state.itemDiscard.push(acme);}p.flags.insurance=false;p.health=p.maxHealth;p.x=0;p.y=0;p.facing='S';log('Acme Insurance saves you and lets you keep your items!','heal');closeCombat();render();centreOnHero();return;}const killedByDragon=!!(combat&&combat.tile&&combat.tile.monster&&combat.tile.monster.isDragon);const droppable=carried.filter(it=>!isBear(it));if(droppable.length){let targetTile;if(killedByDragon){targetTile=healingPoolTile();if(targetTile){log('The Dragon defeats you. Your items are transferred to the Healing Pool.','combat');}else{targetTile=getTile(p.x,p.y);log('The Dragon defeats you. No Healing Pool is available, so your items remain at the Exit.','combat');}}else{targetTile=getTile(p.x,p.y);log('Your items drop on the tile where you fell.','combat');}if(targetTile){targetTile.droppedItems=targetTile.droppedItems||[];targetTile.droppedItems.push(...droppable);}clearPlayerItems();}p.lives--;if(p.lives<=0){lose();return;}p.health=p.maxHealth;p.x=0;p.y=0;p.facing='S';p.hasRing=false;log('You fall and wake at Start. Lives left: '+p.lives+'.','combat');closeCombat();window.BOD3D?.snapHeroToPlayer?.();render();centreOnHero(false);setTimeout(()=>{window.BOD3D?.snapHeroToPlayer?.();render();centreOnHero(true);window.BOD3D?.centreOnHero?.();},120);}
 function closeCombat(){
  const finishedCombat=combat;
 
@@ -3341,20 +3291,18 @@ function useItem(it,consume){const p=state.player,m=combat?.tile?.monster;let us
 function showTeleport(item){
  if(!item||!carriedHas(item)){toast('Teleport Crystal is not being carried');return;}
  teleportItem=item;
- document.body.classList.add('teleportTargeting');
  closeModal();
  log('Teleport Crystal ready: choose any laid dungeon tile.','system');
  toast('Choose a dungeon tile');
  render();
 }
-function cancelTeleport(){teleportItem=null;document.body.classList.remove('teleportTargeting');toast('Teleport cancelled');render();}
+function cancelTeleport(){teleportItem=null;toast('Teleport cancelled');render();}
 function teleportToTile(tileKey,event){
  if(event){event.preventDefault();event.stopPropagation();}
  if(!teleportItem)return;
  const t=state.tiles[tileKey];if(!t)return;
  const [x,y]=tileKey.split(',').map(Number);
-  const escapingCombat=!!combat;
- const crystal=teleportItem;teleportItem=null;document.body.classList.remove('teleportTargeting');
+ const crystal=teleportItem;teleportItem=null;
  {
  const oldX=state.player.x,oldY=state.player.y;
  const dx=x-oldX,dy=y-oldY;
@@ -3498,7 +3446,7 @@ function renderInventory(){
  html+='</div>';
  const t=getTile(p.x,p.y);
  if(t&&t.droppedItems&&t.droppedItems.length)html+='<div class="sectionTitle">On this tile</div><div class="invgrid">'+t.droppedItems.map((x,i)=>`<button class="itemBtn" onclick="pickupDropped(${i})" title="Pick up ${x.name}">${iconHTML(x.name,x.icon||'?')}<span class="dropMark">+</span></button>`).join('')+'</div>';
- if(magicSwordEquipped())html+=magicSwordPeekHTML();
+ if(p.equipment.weapon&&p.equipment.weapon.name==='Magic Sword')html+=magicSwordPeekHTML();
  el.innerHTML=html;
 }
 function magicSwordPeekHTML(){const p=state.player;let rows=[];for(const dir of dirOrder){const d=DIRS[dir],t=getTile(p.x+d.dx,p.y+d.dy);if(t&&(t.monsterPending||(t.monster&&!t.monster.revealed)))rows.push(`<button class="peekBtn" onclick="peekMonster('${dir}')">View ${dir}</button>`);}return rows.length?'<div class="sectionTitle">Magic Sword</div><div class="small">View adjacent monster:</div>'+rows.join(' '):'';}
@@ -3513,7 +3461,6 @@ function useInventoryIndex(idx){const item=allCarriedItems()[idx];if(item)useIte
 function renderKillTally(){const el=document.getElementById('killTally');if(!el||!state)return;const counts={};state.player.killed.forEach(n=>counts[n]=(counts[n]||0)+1);const names=Object.keys(counts);el.innerHTML='<div class="sectionTitle">Monster Tally</div>'+(names.length?'<div class="killGrid">'+names.map(n=>'<span>'+n+'</span><b>×'+counts[n]+'</b>').join('')+'</div>':'<div class="small">No monsters defeated yet.</div>')+'<div class="killTotal">Total kills: '+state.player.killed.length+'</div>';}
 
 function boardInteractionLocked(){
- if(teleportItem)return false;
  return !!combat || document.body.classList.contains('combatActive');
 }
 
@@ -3531,7 +3478,10 @@ function openChestOnTile(tileKey,item){
  if(tileKey!==key(state.player.x,state.player.y)){toast('Move onto the chest tile first');return;}
  removeTileItemObject(tile,item);
  const p=state.player;
- const r=roll(1).total;
+ const chestRoll=roll(1);
+ const r=chestRoll.total;
+ window.BODDice3D?.roll?.(chestRoll.rolls);
+ playSound('dice');
  let msg='';
  let rewardCount=0;
 
@@ -3571,7 +3521,7 @@ function offerChestOnTile(tileKey,item){
  ];
  showModal(
   item.name,
-  ('Chest (may be trapped).')+
+  ('Chest (may be trapped, may contain items).')+
   (here?'\n\nOpen it now, or leave it here and return later.':'\n\nMove onto this tile to open it.'),
   buttons
  );
@@ -3626,19 +3576,8 @@ function renderWorld(){const world=document.getElementById('world');world.innerH
   monsterButton.addEventListener('click',e=>rangedMode?fireRangedAt(monsterButton.dataset.monsterKey,e):showMonsterStats(monsterButton.dataset.monsterKey,e));
   monsterButton.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();(rangedMode?fireRangedAt(monsterButton.dataset.monsterKey,e):showMonsterStats(monsterButton.dataset.monsterKey,e));}});
  }
- const hiddenButton=d.querySelector('.hiddenMonster');
- if(hiddenButton){
-  const hiddenKey=hiddenButton.dataset.rangedKey||k;
-  const handleHiddenMonsterAction=e=>{
-   if(e){e.preventDefault();e.stopPropagation();}
-   if(rangedMode){fireRangedAt(hiddenKey,e);return;}
-   revealAdjacentMonsterWithMagicSword(hiddenKey);
-  };
-  hiddenButton.addEventListener('click',handleHiddenMonsterAction);
-  hiddenButton.addEventListener('keydown',e=>{
-   if(e.key==='Enter'||e.key===' '){handleHiddenMonsterAction(e);}
-  });
- }
+ const hiddenButton=d.querySelector('.hiddenMonster.rangedTarget');
+ if(hiddenButton){hiddenButton.addEventListener('click',e=>fireRangedAt(hiddenButton.dataset.rangedKey,e));hiddenButton.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fireRangedAt(hiddenButton.dataset.rangedKey,e);}});}
  const itemButton=d.querySelector('.tileItemMarker');
  if(itemButton){
   itemButton.addEventListener('click',e=>showTileItems(itemButton.dataset.itemKey,e));
@@ -3646,30 +3585,6 @@ function renderWorld(){const world=document.getElementById('world');world.innerH
  }
  if(teleportItem){d.addEventListener('click',e=>teleportToTile(k,e));}
 }const h=document.createElement('div');h.className='hero';h.innerHTML=state.charDef?iconHTML(state.charDef.name,state.charDef.glyph):iconHTML('Hero','🧑');const heroSize=TILE;const heroOffset=0;h.style.left=(state.player.x*STEP+heroOffset)+'px';h.style.top=(state.player.y*STEP+heroOffset)+'px';world.appendChild(h);wireBoardModels(h);applyPan();applyView3D();if(window.BOD3D&&view3d.enabled)window.BOD3D.render(state);}
-
-function revealAdjacentMonsterWithMagicSword(tileKey){
- const p=state.player;
- if(!magicSwordEquipped())return false;
- const [hx,hy]=tileKey.split(',').map(Number);
- const distance=Math.abs(hx-p.x)+Math.abs(hy-p.y);
- if(distance!==1){toast('The Magic Sword can only reveal an adjacent monster');return false;}
- const tile=state.tiles[tileKey];
- if(!tile)return false;
- if(tile.monsterPending&&!tile.monster){
-  tile.monster=drawMonster();
-  tile.monsterPending=false;
- }
- if(!tile.monster)return false;
- tile.monster.peeked=true;
- showModal(
-  'Magic Sword',
-  tile.monster.name+'\nHealth '+tile.monster.maxHealth+'\nCombat '+tile.monster.dice+'d6+'+tile.monster.mod,
-  [{text:'Close',fn:closeModal}]
- );
- render();
- return true;
-}
-
 window.BOD3DAction=function(type,tileKey){
  if(!state||boardInteractionLocked())return;
  if(type==='monster'){
@@ -3677,10 +3592,7 @@ window.BOD3DAction=function(type,tileKey){
   else showMonsterStats(tileKey);
   return;
  }
- if(type==='hidden'){
-  if(rangedMode){fireRangedAt(tileKey);return;}
-  if(revealAdjacentMonsterWithMagicSword(tileKey))return;
- }
+ if(type==='hidden'&&rangedMode){fireRangedAt(tileKey);return;}
  if(type==='items'){showTileItems(tileKey);return;}
  if(type==='tile'&&teleportItem){teleportToTile(tileKey);return;}
 };
@@ -3722,25 +3634,7 @@ function updateMobileDpad(){
  }
 }
 
-
-function magicSwordEquipped(){
- const p=state&&state.player;
- if(!p)return false;
- // The real active hand slots are p.slots.left / p.slots.right.
- // p.equipment is only a derived summary and does not contain leftHand/rightHand keys.
- const slots=p.slots||{};
- return (slots.left&&slots.left.name==='Magic Sword') ||
-        (slots.right&&slots.right.name==='Magic Sword') ||
-        (p.equipment&&p.equipment.weapon&&p.equipment.weapon.name==='Magic Sword');
-}
-
-function syncMagicSwordClickMode(){
- const active=magicSwordEquipped();
- document.body.classList.toggle('magicSwordActive',active);
-}
-
 function renderControls(){
- syncMagicSwordClickMode();
  const wrap=document.getElementById('controls');
  wrap.innerHTML='';
  updateMobileDpad();
@@ -3933,7 +3827,19 @@ if(compassEl){
 document.getElementById('menuBtn').onclick=openMenu;
 
 const mobileDpadCentre=document.querySelector('.dpadCentre');
-if(mobileDpadCentre)mobileDpadCentre.onclick=()=>centreOnHero(true);
+function centreHeroView(){
+ if(document.body.classList.contains('threeMode')&&window.BOD3D){
+  cameraLockedToHero=true;
+  window.BOD3D.centreOnHero();
+  resetCameraHeroTracking();
+ }else{
+  centreOnHero(true);
+ }
+}
+if(mobileDpadCentre){
+ mobileDpadCentre.onclick=e=>{e?.preventDefault?.();centreHeroView();};
+ mobileDpadCentre.addEventListener('touchend',e=>{e.preventDefault();centreHeroView();},{passive:false});
+}
 
 const mobileSheetToggle=document.getElementById('mobileSheetToggle');
 const mobileSide=document.getElementById('side');
@@ -4894,6 +4800,106 @@ scene.add(boardGroup);
 const textureLoader=new THREE.TextureLoader();
 const gltfLoader=new GLTFLoader();
 
+// v10.91 — Reusable 3D dice roller. The exported dice.glb default pose is
+// calibrated as 6 on top, with 3 and 4 on opposite side faces.
+const diceGroup=new THREE.Group();
+scene.add(diceGroup);
+let diceSourcePromise=null;
+let diceRollToken=0;
+const DICE_TOP_QUATERNIONS={
+ 6:new THREE.Quaternion(),
+ 1:new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI,0,0)),
+ 3:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,-Math.PI/2)),
+ 4:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0, Math.PI/2)),
+ 2:new THREE.Quaternion().setFromEuler(new THREE.Euler( Math.PI/2,0,0)),
+ 5:new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0))
+};
+function clearDice3D(){
+ while(diceGroup.children.length){
+  const o=diceGroup.children.pop();
+  o?.traverse?.(n=>{
+   if(n.geometry&&n.userData?.diceOwnedGeometry)n.geometry.dispose?.();
+  });
+ }
+}
+async function getDiceSource(){
+ if(!diceSourcePromise){
+  diceSourcePromise=gltfLoader.loadAsync(`assets/models/dice.glb?v=${encodeURIComponent(VERSION)}`)
+   .then(g=>g.scene)
+   .catch(err=>{console.error('Failed to load dice.glb',err);return null;});
+ }
+ return diceSourcePromise;
+}
+function prepareDieClone(source){
+ const raw=source.clone(true);
+ raw.traverse(o=>{
+  if(o.isMesh){
+   o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material?.clone?.()||o.material;
+   o.castShadow=true;o.receiveShadow=true;
+  }
+ });
+ const box=new THREE.Box3().setFromObject(raw);
+ const size=box.getSize(new THREE.Vector3());
+ const maxDim=Math.max(size.x,size.y,size.z)||1;
+ raw.scale.multiplyScalar(.72/maxDim);
+ const scaled=new THREE.Box3().setFromObject(raw);
+ const c=scaled.getCenter(new THREE.Vector3());
+ const root=new THREE.Group();
+ raw.position.set(-c.x,-scaled.min.y,-c.z);
+ root.add(raw);
+ return root;
+}
+async function rollDice3D(values){
+ values=(Array.isArray(values)?values:[values]).map(Number).filter(v=>v>=1&&v<=6).slice(0,6);
+ if(!values.length)return;
+ const token=++diceRollToken;
+ const source=await getDiceSource();
+ if(!source||token!==diceRollToken)return;
+ clearDice3D();
+ const px=(latestState?.player?.x||0)*TILE;
+ const pz=(latestState?.player?.y||0)*TILE;
+ const spacing=.88;
+ const startX=px-((values.length-1)*spacing)/2;
+ const dice=[];
+ values.forEach((value,i)=>{
+  const die=prepareDieClone(source);
+  die.position.set(startX+i*spacing,TILE_THICKNESS+.03,pz+1.15);
+  die.scale.setScalar(.01);
+  die.userData={value,start:performance.now()+i*45,duration:820+Math.random()*180,
+   startPos:die.position.clone(),
+   targetPos:new THREE.Vector3(startX+i*spacing,TILE_THICKNESS+.03,pz+1.15),
+   targetQuat:DICE_TOP_QUATERNIONS[value].clone(),
+   spin:new THREE.Vector3((5+Math.random()*4)*Math.PI,(5+Math.random()*5)*Math.PI,(5+Math.random()*4)*Math.PI)};
+  die.userData.startPos.y+=2.1+Math.random()*.55;
+  die.userData.startPos.x+=(Math.random()-.5)*1.4;
+  die.userData.startPos.z+=(Math.random()-.5)*.7;
+  die.position.copy(die.userData.startPos);
+  diceGroup.add(die);dice.push(die);
+ });
+ const animateDice=now=>{
+  if(token!==diceRollToken)return;
+  let alive=false;
+  dice.forEach(die=>{
+   const d=die.userData;
+   const t=Math.max(0,Math.min(1,(now-d.start)/d.duration));
+   if(t<1)alive=true;
+   const ease=1-Math.pow(1-t,3);
+   die.position.lerpVectors(d.startPos,d.targetPos,ease);
+   die.position.y+=Math.sin(t*Math.PI)*.55 + Math.abs(Math.sin(t*Math.PI*3))*.12*(1-t);
+   const qSpin=new THREE.Quaternion().setFromEuler(new THREE.Euler(d.spin.x*t,d.spin.y*t,d.spin.z*t));
+   const settle=Math.max(0,(t-.68)/.32);
+   die.quaternion.copy(qSpin).slerp(d.targetQuat,settle*settle*(3-2*settle));
+   const pop=Math.min(1,t/.10);
+   die.scale.setScalar(pop);
+  });
+  if(alive)requestAnimationFrame(animateDice);
+  else setTimeout(()=>{if(token===diceRollToken)clearDice3D();},1450);
+ };
+ requestAnimationFrame(animateDice);
+}
+window.BODDice3D={roll:rollDice3D,clear:clearDice3D};
+
+
 const heroPreviewCanvas=document.getElementById('heroPreviewCanvas');
 const heroPreviewWrap=document.getElementById('heroPreviewWrap');
 const heroPreviewLoading=document.getElementById('heroPreviewLoading');
@@ -5080,7 +5086,7 @@ function triggerCameraShake(duration=240,magnitude=.14){
 }
 
 function startMonsterDrop(pivot,restY,monsterName,delay=0,monsterState=null){
- // v10.99: grounded monster reveal — no vertical drop.
+ // v10.90: grounded monster reveal — no vertical drop.
  pivot.position.y=restY;
  if(monsterState)monsterState._dropped=true;
  const reveal=()=>{
@@ -7517,7 +7523,7 @@ if(currentState)renderBoard(currentState);
 
 
 <script>
-/* v10.99 — Start-screen distant monster ambience */
+/* v10.90 — Start-screen distant monster ambience */
 (function () {
   const START_AMBIENCE_PATH = './assets/sounds/distant-monsters.mp3';
   let distantMonstersAudio = null;
@@ -7614,7 +7620,7 @@ if(currentState)renderBoard(currentState);
 
 
 <script>
-/* v10.99 — Explicit start-screen/dungeon ambience handoff */
+/* v10.90 — Explicit start-screen/dungeon ambience handoff */
 (function () {
   const DUNGEON_AMBIENCE_PATH = './assets/sounds/dungeon-sounds.mp3';
   let dungeonAmbienceAudio = null;
@@ -7691,7 +7697,7 @@ if(currentState)renderBoard(currentState);
 
 
 <style>
-/* v10.99 — Keep remaining dungeon contents a mystery */
+/* v10.90 — Keep remaining dungeon contents a mystery */
 #counts,#tileCount,#monsterCount,#itemCount,
 .tilesCount,.monstersCount,.itemsCount,
 .tileCount,.monsterCount,.itemCount,
@@ -7725,7 +7731,7 @@ if(currentState)renderBoard(currentState);
   if(known)return;
   const v=document.createElement('div');
   v.id='topLogoVersion';
-  v.textContent='v10.99';
+  v.textContent='v10.91';
   v.style.cssText='font-size:10px;line-height:1;text-align:center;letter-spacing:.08em;opacity:.65;color:#e6d6a8;margin-top:2px;';
   logo.insertAdjacentElement('afterend',v);
  }
@@ -7736,7 +7742,7 @@ if(currentState)renderBoard(currentState);
 
 
 <script>
-/* v10.99 — Definitively remove version text from Quest Log only */
+/* v10.90 — Definitively remove version text from Quest Log only */
 (function(){
  function cleanQuestLogVersion(){
   document.querySelectorAll('*').forEach(function(el){
@@ -7769,7 +7775,7 @@ if(currentState)renderBoard(currentState);
 }
 </style>
 <script>
-/* v10.99 — Move version from welcome Quest Log entry to beneath 3D logo */
+/* v10.90 — Move version from welcome Quest Log entry to beneath 3D logo */
 (function(){
  function fixVersionPlacement(){
   // Clean the actual welcome log entry, including dynamically generated text.
@@ -7795,76 +7801,13 @@ if(currentState)renderBoard(currentState);
   if(mark){
    var v=document.createElement('div');
    v.id='bodVersionUnderLogo';
-   v.textContent='v10.99';
+   v.textContent='v10.91';
    mark.insertAdjacentElement('afterend',v);
   }
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fixVersionPlacement,{once:true});
  else fixVersionPlacement();
  new MutationObserver(fixVersionPlacement).observe(document.documentElement,{subtree:true,childList:true,characterData:true});
-})();
-</script>
-
-<style>
-#dungeonQuestIntro{position:fixed;inset:0;z-index:650;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.62)}
-#dungeonQuestIntro.open{display:flex}
-.dungeonQuestScroll{width:min(620px,92vw);min-height:340px;padding:58px 70px 52px;color:#000;text-align:center;background-color:transparent;background-image:url('./assets/ui/scroll.png');background-position:center;background-repeat:no-repeat;background-size:100% 100%;border:0;box-shadow:none}
-.dungeonQuestScroll h2{margin:0 0 18px;font:800 clamp(28px,4vw,42px)/1.05 "Alegreya",Georgia,serif}
-.dungeonQuestScroll p{margin:0 auto 16px;max-width:470px;font:600 clamp(18px,2.4vw,25px)/1.28 "Alegreya",Georgia,serif}
-.dungeonQuestScroll .questWarning{font-weight:800;color:#B4201A}
-.dungeonQuestScroll button{margin-top:8px;min-width:190px;font-size:17px}
-@media(max-width:600px){.dungeonQuestScroll{min-height:300px;padding:42px 30px 38px}}
-</style>
-<div id="dungeonQuestIntro" aria-modal="true" role="dialog" aria-labelledby="dungeonQuestIntroTitle">
- <div class="dungeonQuestScroll">
-  <h2 id="dungeonQuestIntroTitle">Your Quest</h2>
-  <p>Can you find and defeat the Red Dragon?</p>
-  <p class="questWarning">Be warned! She fights with 4 dice, and you only have 3 lives!</p>
-  <p>Good luck, adventurer. You’ll need it.</p>
-  <button type="button" id="enterDungeonQuestBtn">Enter the Dungeon</button>
- </div>
-</div>
-<script>
-(function(){
- let introShown=false;
- function hidden(){const e=document.getElementById('charSelect');if(!e)return false;const s=getComputedStyle(e);return e.classList.contains('hidden')||e.hidden||s.display==='none'||s.visibility==='hidden'}
- function show(){if(introShown)return;introShown=true;document.getElementById('dungeonQuestIntro')?.classList.add('open')}
- function close(){document.getElementById('dungeonQuestIntro')?.classList.remove('open')}
- function install(){
-  document.getElementById('enterDungeonQuestBtn')?.addEventListener('click',close);
-  const e=document.getElementById('charSelect');if(!e)return;
-  let was=hidden();
-  new MutationObserver(()=>{const now=hidden();if(now&&!was)setTimeout(show,120);was=now}).observe(e,{attributes:true,attributeFilter:['class','style','hidden']});
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-})();
-</script>
-
-<script>
-/* v10.99 — robust Magic Sword board click fallback */
-(function(){
- function installMagicSwordCapture(){
-  const roots=[document.getElementById('viewport'),document.getElementById('threeBoard'),document.getElementById('world')].filter(Boolean);
-  roots.forEach(root=>{
-   root.addEventListener('click',function(e){
-    if(typeof magicSwordEquipped!=='function'||!magicSwordEquipped())return;
-    const target=e.target.closest?.('[data-monster-key],[data-ranged-key],[data-key],[data-tile-key]');
-    if(!target)return;
-    const tileKey=target.dataset.monsterKey||target.dataset.rangedKey||target.dataset.key||target.dataset.tileKey;
-    if(!tileKey)return;
-    const tile=state?.tiles?.[tileKey];
-    if(!tile||( !tile.monsterPending && !tile.monster))return;
-    const p=state.player;
-    const xy=tileKey.split(',').map(Number);
-    if(xy.length!==2||Math.abs(xy[0]-p.x)+Math.abs(xy[1]-p.y)!==1)return;
-    e.preventDefault();
-    e.stopPropagation();
-    revealAdjacentMonsterWithMagicSword(tileKey);
-   },true);
-  });
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installMagicSwordCapture,{once:true});
- else installMagicSwordCapture();
 })();
 </script>
 
