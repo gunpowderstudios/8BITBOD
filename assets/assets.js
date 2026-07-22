@@ -142,3 +142,17 @@ window.ASSET_PATHS = {
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 })();
+
+// v11.23 TEST: improve contrast on the Enter the Dungeon hover/focus state.
+(function installEnterDungeonHoverFix(){
+  const style=document.createElement('style');
+  style.id='enterDungeonHoverFix';
+  style.textContent=`
+    .chooseHeroBtn:hover,
+    .chooseHeroBtn:focus-visible{
+      background:linear-gradient(#fff2c8,#efd68b)!important;
+      color:#000!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
